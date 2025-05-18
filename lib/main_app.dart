@@ -1,15 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'features/home/presentation/pages/home_tab_content.dart';
 import 'features/projects/presentation/pages/projects_tab_content.dart';
 import 'features/pomodoro/presentation/pages/pomodoro_tab_content.dart';
 import 'features/knowledge/presentation/pages/knowledge_tab_content.dart';
 import 'features/journal/presentation/pages/journal_tab_content.dart';
-
-void main() {
-  runApp(const SecondBrainApp());
-}
 
 class SecondBrainApp extends StatelessWidget {
   const SecondBrainApp({super.key});
@@ -27,7 +22,7 @@ class SecondBrainApp extends StatelessWidget {
           background: Colors.white,
           surface: Colors.white,
         ),
-        textTheme: GoogleFonts.interTextTheme(),
+        fontFamily: 'SF Pro Display',
         appBarTheme: const AppBarTheme(
           backgroundColor: Colors.white,
           elevation: 0,
@@ -102,7 +97,7 @@ class SecondBrainApp extends StatelessWidget {
           background: const Color(0xFF121212),
           surface: const Color(0xFF1E1E1E),
         ),
-        textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
+        fontFamily: 'SF Pro Display',
         appBarTheme: const AppBarTheme(
           backgroundColor: Color(0xFF1E1E1E),
           elevation: 0,
