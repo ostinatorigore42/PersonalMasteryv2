@@ -8,7 +8,7 @@ class PomodoroTabContent extends StatefulWidget {
   State<PomodoroTabContent> createState() => _PomodoroTabContentState();
 }
 
-class _PomodoroTabContentState extends State<PomodoroTabContent> with SingleTickerProviderStateMixin {
+class _PomodoroTabContentState extends State<PomodoroTabContent> {
   // Timer state
   Timer? _timer;
   int _currentSeconds = 25 * 60; // 25 minutes default
@@ -22,25 +22,12 @@ class _PomodoroTabContentState extends State<PomodoroTabContent> with SingleTick
   int _longBreakMinutes = 15;
   int _pomodorosBeforeLongBreak = 4;
   
-  // Animation controller for progress
-  late AnimationController _animationController;
-  
   // Current task
   Map<String, dynamic>? _selectedTask;
   
   @override
-  void initState() {
-    super.initState();
-    _animationController = AnimationController(
-      vsync: this,
-      duration: Duration(seconds: _pomodoroMinutes * 60),
-    );
-  }
-  
-  @override
   void dispose() {
     _timer?.cancel();
-    _animationController.dispose();
     super.dispose();
   }
   
@@ -57,9 +44,6 @@ class _PomodoroTabContentState extends State<PomodoroTabContent> with SingleTick
       setState(() {
         if (_currentSeconds > 0) {
           _currentSeconds--;
-          _animationController.value = 1 - (_currentSeconds / (_isBreak 
-            ? (_completedPomodoros % _pomodorosBeforeLongBreak == 0 ? _longBreakMinutes : _shortBreakMinutes) * 60 
-            : _pomodoroMinutes * 60));
         } else {
           _timer!.cancel();
           _isRunning = false;
@@ -68,8 +52,6 @@ class _PomodoroTabContentState extends State<PomodoroTabContent> with SingleTick
             // Break is over, start a new pomodoro
             _isBreak = false;
             _currentSeconds = _pomodoroMinutes * 60;
-            _animationController.duration = Duration(seconds: _pomodoroMinutes * 60);
-            _animationController.reset();
           } else {
             // Pomodoro is over, start a break
             _completedPomodoros++;
@@ -78,13 +60,10 @@ class _PomodoroTabContentState extends State<PomodoroTabContent> with SingleTick
             if (_completedPomodoros % _pomodorosBeforeLongBreak == 0) {
               // Time for a long break
               _currentSeconds = _longBreakMinutes * 60;
-              _animationController.duration = Duration(seconds: _longBreakMinutes * 60);
             } else {
               // Time for a short break
               _currentSeconds = _shortBreakMinutes * 60;
-              _animationController.duration = Duration(seconds: _shortBreakMinutes * 60);
             }
-            _animationController.reset();
             
             // Show session complete dialog
             _showSessionCompleteDialog();
@@ -112,38 +91,6 @@ class _PomodoroTabContentState extends State<PomodoroTabContent> with SingleTick
       } else {
         _currentSeconds = _pomodoroMinutes * 60;
       }
-      _animationController.reset();
-    });
-  }
-  
-  void _skipToBreak() {
-    _timer?.cancel();
-    setState(() {
-      _isRunning = false;
-      _isBreak = true;
-      _completedPomodoros++;
-      
-      if (_completedPomodoros % _pomodorosBeforeLongBreak == 0) {
-        // Time for a long break
-        _currentSeconds = _longBreakMinutes * 60;
-        _animationController.duration = Duration(seconds: _longBreakMinutes * 60);
-      } else {
-        // Time for a short break
-        _currentSeconds = _shortBreakMinutes * 60;
-        _animationController.duration = Duration(seconds: _shortBreakMinutes * 60);
-      }
-      _animationController.reset();
-    });
-  }
-  
-  void _skipToPomodoro() {
-    _timer?.cancel();
-    setState(() {
-      _isRunning = false;
-      _isBreak = false;
-      _currentSeconds = _pomodoroMinutes * 60;
-      _animationController.duration = Duration(seconds: _pomodoroMinutes * 60);
-      _animationController.reset();
     });
   }
   
@@ -191,7 +138,7 @@ class _PomodoroTabContentState extends State<PomodoroTabContent> with SingleTick
   }
   
   void _showSelectTaskDialog() {
-    // Mock tasks
+    // Sample tasks
     final tasks = [
       {
         'id': '1',
@@ -226,19 +173,10 @@ class _PomodoroTabContentState extends State<PomodoroTabContent> with SingleTick
               final task = tasks[index];
               return ListTile(
                 title: Text(task['title'] as String),
-                subtitle: Row(
-                  children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: task['projectColor'] as Color,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Text(task['project'] as String),
-                  ],
+                subtitle: Text(task['project'] as String),
+                leading: CircleAvatar(
+                  backgroundColor: task['projectColor'] as Color,
+                  radius: 12,
                 ),
                 onTap: () {
                   setState(() {
@@ -254,116 +192,6 @@ class _PomodoroTabContentState extends State<PomodoroTabContent> with SingleTick
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('Cancel'),
-          ),
-        ],
-      ),
-    );
-  }
-  
-  void _showSettingsDialog() {
-    int pomodoroMinutes = _pomodoroMinutes;
-    int shortBreakMinutes = _shortBreakMinutes;
-    int longBreakMinutes = _longBreakMinutes;
-    int pomodorosBeforeLongBreak = _pomodorosBeforeLongBreak;
-    
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Pomodoro Settings'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Pomodoro Duration'),
-              Slider(
-                value: pomodoroMinutes.toDouble(),
-                min: 5,
-                max: 60,
-                divisions: 11,
-                label: '$pomodoroMinutes minutes',
-                onChanged: (value) {
-                  pomodoroMinutes = value.round();
-                  // Need to call setState to update the label
-                  // This is a bit of a hack but works in a dialog
-                  (context as Element).markNeedsBuild();
-                },
-              ),
-              
-              const SizedBox(height: 16),
-              const Text('Short Break Duration'),
-              Slider(
-                value: shortBreakMinutes.toDouble(),
-                min: 1,
-                max: 15,
-                divisions: 14,
-                label: '$shortBreakMinutes minutes',
-                onChanged: (value) {
-                  shortBreakMinutes = value.round();
-                  (context as Element).markNeedsBuild();
-                },
-              ),
-              
-              const SizedBox(height: 16),
-              const Text('Long Break Duration'),
-              Slider(
-                value: longBreakMinutes.toDouble(),
-                min: 5,
-                max: 30,
-                divisions: 5,
-                label: '$longBreakMinutes minutes',
-                onChanged: (value) {
-                  longBreakMinutes = value.round();
-                  (context as Element).markNeedsBuild();
-                },
-              ),
-              
-              const SizedBox(height: 16),
-              const Text('Pomodoros before Long Break'),
-              Slider(
-                value: pomodorosBeforeLongBreak.toDouble(),
-                min: 2,
-                max: 6,
-                divisions: 4,
-                label: '$pomodorosBeforeLongBreak pomodoros',
-                onChanged: (value) {
-                  pomodorosBeforeLongBreak = value.round();
-                  (context as Element).markNeedsBuild();
-                },
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              setState(() {
-                _pomodoroMinutes = pomodoroMinutes;
-                _shortBreakMinutes = shortBreakMinutes;
-                _longBreakMinutes = longBreakMinutes;
-                _pomodorosBeforeLongBreak = pomodorosBeforeLongBreak;
-                
-                // Reset timer with new settings
-                if (!_isRunning) {
-                  if (_isBreak) {
-                    _currentSeconds = (_completedPomodoros % _pomodorosBeforeLongBreak == 0 
-                        ? _longBreakMinutes 
-                        : _shortBreakMinutes) * 60;
-                    _animationController.duration = Duration(seconds: _currentSeconds);
-                  } else {
-                    _currentSeconds = _pomodoroMinutes * 60;
-                    _animationController.duration = Duration(seconds: _currentSeconds);
-                  }
-                  _animationController.reset();
-                }
-              });
-              Navigator.of(context).pop();
-            },
-            child: const Text('Save'),
           ),
         ],
       ),
@@ -386,7 +214,12 @@ class _PomodoroTabContentState extends State<PomodoroTabContent> with SingleTick
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
-            onPressed: _showSettingsDialog,
+            onPressed: () {
+              // Show settings dialog (simplified)
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Settings coming soon'))
+              );
+            },
           ),
         ],
       ),
@@ -445,13 +278,9 @@ class _PomodoroTabContentState extends State<PomodoroTabContent> with SingleTick
                         padding: const EdgeInsets.all(16),
                         child: Row(
                           children: [
-                            Container(
-                              width: 16,
-                              height: 16,
-                              decoration: BoxDecoration(
-                                color: _selectedTask!['projectColor'] as Color,
-                                shape: BoxShape.circle,
-                              ),
+                            CircleAvatar(
+                              backgroundColor: _selectedTask!['projectColor'] as Color,
+                              radius: 8,
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -491,41 +320,31 @@ class _PomodoroTabContentState extends State<PomodoroTabContent> with SingleTick
                   ],
                   
                   // Timer circle
-                  SizedBox(
+                  Container(
                     width: 280,
                     height: 280,
-                    child: Stack(
-                      alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: _isBreak ? Colors.green : theme.colorScheme.primary,
+                        width: 8,
+                      ),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        AnimatedBuilder(
-                          animation: _animationController,
-                          builder: (context, child) {
-                            return CircularProgressIndicator(
-                              value: _animationController.value,
-                              strokeWidth: 10,
-                              backgroundColor: Colors.grey.shade200,
-                              color: _isBreak ? Colors.green : theme.colorScheme.primary,
-                              strokeCap: StrokeCap.round,
-                            );
-                          },
+                        Text(
+                          _formatTime(_currentSeconds),
+                          style: const TextStyle(
+                            fontSize: 60,
+                            fontWeight: FontWeight.w200,
+                          ),
                         ),
-                        Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              _formatTime(_currentSeconds),
-                              style: const TextStyle(
-                                fontSize: 60,
-                                fontWeight: FontWeight.w200,
-                              ),
-                            ),
-                            Text(
-                              _isBreak ? 'Break time' : 'Focus time',
-                              style: TextStyle(
-                                color: Colors.grey.shade600,
-                              ),
-                            ),
-                          ],
+                        Text(
+                          _isBreak ? 'Break time' : 'Focus time',
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                          ),
                         ),
                       ],
                     ),
@@ -536,14 +355,6 @@ class _PomodoroTabContentState extends State<PomodoroTabContent> with SingleTick
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // Skip button (visible during pomodoro for testing)
-                      if (!_isBreak)
-                        IconButton(
-                          icon: const Icon(Icons.skip_next),
-                          onPressed: _skipToBreak,
-                          tooltip: 'Skip to break',
-                        ),
-                      
                       // Reset button
                       IconButton(
                         icon: const Icon(Icons.refresh),
@@ -575,14 +386,6 @@ class _PomodoroTabContentState extends State<PomodoroTabContent> with SingleTick
                         onPressed: _showSelectTaskDialog,
                         tooltip: 'Select task',
                       ),
-                      
-                      // Skip button (visible during break for testing)
-                      if (_isBreak)
-                        IconButton(
-                          icon: const Icon(Icons.skip_next),
-                          onPressed: _skipToPomodoro,
-                          tooltip: 'Skip to pomodoro',
-                        ),
                     ],
                   ),
                 ],

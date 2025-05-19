@@ -1,4 +1,4 @@
-# workspace
+# simple_productivity_app
 
 A new Flutter project.
 
