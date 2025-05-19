@@ -1,264 +1,182 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 void main() {
-  // Ensure device orientation is portrait only
-  SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown,
-  ]);
-  
-  runApp(const ProductivityApp());
+  runApp(const MyApp());
 }
 
-class ProductivityApp extends StatelessWidget {
-  const ProductivityApp({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Second Brain',
+      title: 'Productivity App',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        useMaterial3: true,
-        // Dark theme matching the reference images
         brightness: Brightness.dark,
+        useMaterial3: true,
         scaffoldBackgroundColor: const Color(0xFF121212),
         appBarTheme: const AppBarTheme(
           backgroundColor: Color(0xFF121212),
           foregroundColor: Colors.white,
-          elevation: 0,
-          systemOverlayStyle: SystemUiOverlayStyle.light,
         ),
         colorScheme: const ColorScheme.dark(
-          primary: Color(0xFFE57373), // Light red for primary actions
-          secondary: Color(0xFF4CAF50), // Green for completed tasks
-          surface: Color(0xFF1E1E1E), // Card background
-          background: Color(0xFF121212), // App background
-        ),
-        cardTheme: CardTheme(
-          color: const Color(0xFF1E1E1E),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          elevation: 0,
-        ),
-        textTheme: const TextTheme(
-          headlineLarge: TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-          headlineMedium: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-          titleLarge: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
-          bodyLarge: TextStyle(
-            fontSize: 16,
-            color: Colors.white,
-          ),
-          bodyMedium: TextStyle(
-            fontSize: 14,
-            color: Colors.grey,
-          ),
+          primary: Color(0xFFE57373),
+          secondary: Color(0xFF4CAF50),
+          surface: Color(0xFF1E1E1E),
         ),
       ),
-      home: const HomePage(),
+      home: const ProjectsPage(),
     );
   }
 }
 
-class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+class ProjectsPage extends StatefulWidget {
+  const ProjectsPage({super.key});
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  State<ProjectsPage> createState() => _ProjectsPageState();
 }
 
-class _HomePageState extends State<HomePage> {
-  // Sample project data
-  final List<Map<String, dynamic>> _projects = [
+class _ProjectsPageState extends State<ProjectsPage> {
+  final List<Map<String, dynamic>> projects = [
     {
       'name': 'Academic Education',
       'color': Colors.purple,
-      'focusMinutes': '0m',
-      'taskCount': 5,
+      'minutes': '0m',
+      'tasks': 5,
     },
     {
       'name': 'Reading',
       'color': Colors.cyan,
-      'focusMinutes': '0m',
-      'taskCount': 1,
+      'minutes': '0m',
+      'tasks': 1,
     },
     {
       'name': 'Self-improvement Leisure',
       'color': Colors.pink,
-      'focusMinutes': '0m',
-      'taskCount': 3,
+      'minutes': '0m',
+      'tasks': 3,
     },
     {
       'name': 'Zeitgeist',
       'color': Colors.orange,
-      'focusMinutes': '0m',
-      'taskCount': 4,
+      'minutes': '0m',
+      'tasks': 4,
     },
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // App header with date
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Projects',
-                    style: Theme.of(context).textTheme.headlineLarge,
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.analytics_outlined),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const AnalyticsPage(),
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
+      appBar: AppBar(
+        title: const Text('Projects'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.analytics_outlined),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const AnalyticsPage()),
+              );
+            },
+          ),
+        ],
+      ),
+      body: ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: projects.length,
+        itemBuilder: (context, index) {
+          final project = projects[index];
+          return ListTile(
+            leading: CircleAvatar(
+              backgroundColor: project['color'],
+              radius: 12,
             ),
-            
-            // Project list
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                itemCount: _projects.length,
-                itemBuilder: (context, index) {
-                  final project = _projects[index];
-                  return ProjectCard(
-                    name: project['name'],
-                    color: project['color'],
-                    focusMinutes: project['focusMinutes'],
-                    taskCount: project['taskCount'],
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ProjectDetailPage(
-                            projectName: project['name'],
-                            projectColor: project['color'],
-                          ),
-                        ),
-                      );
-                    },
-                  );
-                },
-              ),
+            title: Text(project['name']),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  project['minutes'],
+                  style: const TextStyle(color: Colors.grey),
+                ),
+                const SizedBox(width: 24),
+                Text('${project['tasks']}'),
+              ],
             ),
-          ],
-        ),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => TaskListPage(
+                    projectName: project['name'],
+                    projectColor: project['color'],
+                  ),
+                ),
+              );
+            },
+          );
+        },
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: Theme.of(context).colorScheme.primary,
-        child: const Icon(Icons.add, color: Colors.white),
-        onPressed: () {
-          _showAddProjectDialog();
-        },
+        child: const Icon(Icons.add),
+        onPressed: () => _showAddProjectDialog(),
       ),
     );
   }
 
   void _showAddProjectDialog() {
-    final TextEditingController nameController = TextEditingController();
-    Color selectedColor = Colors.blue;
+    final nameController = TextEditingController();
+    Color selectedColor = Colors.purple;
 
     showDialog(
       context: context,
-      builder: (BuildContext context) {
+      builder: (context) {
         return AlertDialog(
-          backgroundColor: const Color(0xFF1E1E1E),
-          title: const Text('New Project'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Project Name',
-                    border: OutlineInputBorder(),
-                  ),
+          title: const Text('Add Project'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Project Name',
                 ),
-                const SizedBox(height: 16),
-                const Text('Select Color'),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _colorOption(Colors.purple, selectedColor == Colors.purple, () {
-                      setState(() => selectedColor = Colors.purple);
-                      Navigator.pop(context);
-                      _showAddProjectDialog();
-                    }),
-                    _colorOption(Colors.cyan, selectedColor == Colors.cyan, () {
-                      setState(() => selectedColor = Colors.cyan);
-                      Navigator.pop(context);
-                      _showAddProjectDialog();
-                    }),
-                    _colorOption(Colors.pink, selectedColor == Colors.pink, () {
-                      setState(() => selectedColor = Colors.pink);
-                      Navigator.pop(context);
-                      _showAddProjectDialog();
-                    }),
-                    _colorOption(Colors.orange, selectedColor == Colors.orange, () {
-                      setState(() => selectedColor = Colors.orange);
-                      Navigator.pop(context);
-                      _showAddProjectDialog();
-                    }),
-                  ],
-                ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _colorOption(Colors.purple),
+                  _colorOption(Colors.cyan),
+                  _colorOption(Colors.pink),
+                  _colorOption(Colors.orange),
+                ],
+              ),
+            ],
           ),
           actions: [
             TextButton(
+              onPressed: () => Navigator.pop(context),
               child: const Text('Cancel'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
             ),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.primary,
-              ),
-              child: const Text('Create'),
               onPressed: () {
                 if (nameController.text.isNotEmpty) {
                   setState(() {
-                    _projects.add({
+                    projects.add({
                       'name': nameController.text,
                       'color': selectedColor,
-                      'focusMinutes': '0m',
-                      'taskCount': 0,
+                      'minutes': '0m',
+                      'tasks': 0,
                     });
                   });
-                  Navigator.of(context).pop();
+                  Navigator.pop(context);
                 }
               },
+              child: const Text('Create'),
             ),
           ],
         );
@@ -266,214 +184,116 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _colorOption(Color color, bool isSelected, VoidCallback onTap) {
+  Widget _colorOption(Color color) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: () {},
       child: Container(
-        width: 40,
-        height: 40,
+        width: 30,
+        height: 30,
         decoration: BoxDecoration(
           color: color,
           shape: BoxShape.circle,
-          border: Border.all(
-            color: isSelected ? Colors.white : Colors.transparent,
-            width: 2,
-          ),
         ),
       ),
     );
   }
 }
 
-class ProjectCard extends StatelessWidget {
-  final String name;
-  final Color color;
-  final String focusMinutes;
-  final int taskCount;
-  final VoidCallback onTap;
-
-  const ProjectCard({
-    super.key,
-    required this.name,
-    required this.color,
-    required this.focusMinutes,
-    required this.taskCount,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 16),
-        child: Row(
-          children: [
-            Container(
-              width: 24,
-              height: 24,
-              decoration: BoxDecoration(
-                color: color,
-                shape: BoxShape.circle,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Text(
-                name,
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-            ),
-            Text(
-              focusMinutes,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            const SizedBox(width: 24),
-            Text(
-              '$taskCount',
-              style: Theme.of(context).textTheme.bodyLarge,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class ProjectDetailPage extends StatefulWidget {
+class TaskListPage extends StatefulWidget {
   final String projectName;
   final Color projectColor;
 
-  const ProjectDetailPage({
+  const TaskListPage({
     super.key,
     required this.projectName,
     required this.projectColor,
   });
 
   @override
-  State<ProjectDetailPage> createState() => _ProjectDetailPageState();
+  State<TaskListPage> createState() => _TaskListPageState();
 }
 
-class _ProjectDetailPageState extends State<ProjectDetailPage> {
-  // Sample task data - would come from a database in a real app
-  late List<Map<String, dynamic>> _tasks;
-  bool _showCompletedTasks = false;
+class _TaskListPageState extends State<TaskListPage> {
+  late List<Map<String, dynamic>> tasks;
+  bool showCompleted = false;
 
   @override
   void initState() {
     super.initState();
     
-    // Initialize tasks based on project
     if (widget.projectName == 'Academic Education') {
-      _tasks = [
+      tasks = [
         {
           'title': 'CS: Programming',
-          'isCompleted': false,
-          'pomodoroCount': 1,
-          'dueDate': null,
+          'completed': false,
+          'pomodoros': 1,
         },
         {
           'title': 'Macroeconomics: Revision',
-          'isCompleted': false,
-          'pomodoroCount': 2,
-          'dueDate': null,
+          'completed': false,
+          'pomodoros': 2,
         },
         {
           'title': 'Physics: Work and Mechanical Energy',
-          'isCompleted': false,
-          'pomodoroCount': 1,
-          'dueDate': null,
+          'completed': false,
+          'pomodoros': 1,
         },
         {
           'title': 'Biology: Meiosis and genetic diversity',
-          'isCompleted': false,
-          'pomodoroCount': 2,
-          'dueDate': null,
+          'completed': false,
+          'pomodoros': 2,
         },
         {
           'title': 'Physics 1: Newtonian Laws',
-          'isCompleted': false,
-          'pomodoroCount': 1,
+          'completed': false,
+          'pomodoros': 1,
           'dueDate': 'Sun, 8 Jan',
         },
       ];
     } else if (widget.projectName == 'Reading') {
-      _tasks = [
+      tasks = [
         {
           'title': 'Descartes Error',
-          'isCompleted': false,
-          'pomodoroCount': 9,
-          'dueDate': null,
+          'completed': false,
+          'pomodoros': 9,
         },
         {
           'title': 'Homo Deus',
-          'isCompleted': true,
-          'pomodoroCount': 15,
+          'completed': true,
+          'pomodoros': 15,
           'dueDate': 'Sun, 15 Jan 2023',
         },
         {
           'title': 'Webs of Humankind: Ch 25',
-          'isCompleted': true,
-          'pomodoroCount': 1,
+          'completed': true,
+          'pomodoros': 1,
           'dueDate': 'Fri, 6 Jan 2023',
-        },
-        {
-          'title': 'Red Pill - Andrew Kurpatov',
-          'isCompleted': true,
-          'pomodoroCount': 1,
-          'dueDate': 'Tue, 15 Feb 2022',
         },
       ];
     } else {
-      _tasks = [];
+      tasks = [];
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Filter tasks based on completion status
-    final displayTasks = _showCompletedTasks 
-        ? _tasks 
-        : _tasks.where((task) => !task['isCompleted']).toList();
+    final displayTasks = showCompleted 
+        ? tasks 
+        : tasks.where((task) => !task['completed']).toList();
     
-    // Calculate stats
-    final incompleteTaskCount = _tasks.where((task) => !task['isCompleted']).length;
-    final completedTaskCount = _tasks.where((task) => task['isCompleted']).length;
+    final incompleteTasks = tasks.where((task) => !task['completed']).length;
+    final completedTasks = tasks.where((task) => task['completed']).length;
     
-    // Calculate total time
-    int totalPomodoroCount = 0;
-    for (var task in _tasks.where((task) => task['isCompleted'])) {
-      totalPomodoroCount += task['pomodoroCount'] as int;
-    }
-    
-    // Format as hours and minutes (assuming 25 mins per pomodoro)
-    final totalMinutes = totalPomodoroCount * 25;
-    final hours = totalMinutes ~/ 60;
-    final minutes = totalMinutes % 60;
-    final elapsedTime = '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}';
-
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.projectName),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
         actions: [
           IconButton(
-            icon: Icon(_showCompletedTasks ? Icons.check_circle : Icons.check_circle_outline),
+            icon: Icon(showCompleted ? Icons.check_circle : Icons.check_circle_outline),
             onPressed: () {
               setState(() {
-                _showCompletedTasks = !_showCompletedTasks;
+                showCompleted = !showCompleted;
               });
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.more_vert),
-            onPressed: () {
-              // Show project options menu
             },
           ),
         ],
@@ -481,225 +301,187 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
       body: Column(
         children: [
           // Stats card
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    Column(
-                      children: [
-                        const Text('HH    MM', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                        Text(
-                          '00:00',
-                          style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 24, fontWeight: FontWeight.bold),
-                        ),
-                        const Text('Estimated Time', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                      ],
-                    ),
-                    Column(
-                      children: [
-                        const Text('', style: TextStyle(fontSize: 12)),
-                        Text(
-                          '$incompleteTaskCount',
-                          style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 24, fontWeight: FontWeight.bold),
-                        ),
-                        const Text('Tasks to be Completed', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                      ],
-                    ),
-                    Column(
-                      children: [
-                        const Text('HH    MM', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                        Text(
-                          elapsedTime,
-                          style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 24, fontWeight: FontWeight.bold),
-                        ),
-                        const Text('Elapsed Time', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                      ],
-                    ),
-                    Column(
-                      children: [
-                        const Text('', style: TextStyle(fontSize: 12)),
-                        Text(
-                          '$completedTaskCount',
-                          style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 24, fontWeight: FontWeight.bold),
-                        ),
-                        const Text('Completed Tasks', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                      ],
-                    ),
-                  ],
-                ),
+          Card(
+            margin: const EdgeInsets.all(16),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _statColumn('00:00', 'Estimated Time'),
+                  _statColumn('$incompleteTasks', 'Tasks to Complete'),
+                  _statColumn('75:27', 'Elapsed Time'),
+                  _statColumn('$completedTasks', 'Completed Tasks'),
+                ],
               ),
             ),
           ),
           
-          // Add task card
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Card(
-              child: InkWell(
-                onTap: () {
-                  _showAddTaskDialog();
-                },
-                child: const Padding(
-                  padding: EdgeInsets.all(16.0),
-                  child: Row(
-                    children: [
-                      Icon(Icons.add, color: Colors.grey),
-                      SizedBox(width: 16),
-                      Text('Add a task...', style: TextStyle(color: Colors.grey)),
-                    ],
-                  ),
-                ),
-              ),
+          // Add task button
+          Card(
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            child: ListTile(
+              leading: const Icon(Icons.add),
+              title: const Text('Add a task...'),
+              onTap: _showAddTaskDialog,
             ),
           ),
           
           // Task list
           Expanded(
             child: ListView.builder(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(16),
               itemCount: displayTasks.length,
               itemBuilder: (context, index) {
                 final task = displayTasks[index];
-                return TaskCard(
-                  title: task['title'],
-                  isCompleted: task['isCompleted'],
-                  pomodoroCount: task['pomodoroCount'],
-                  dueDate: task['dueDate'],
-                  projectColor: widget.projectColor,
-                  onToggleComplete: () {
-                    setState(() {
-                      task['isCompleted'] = !task['isCompleted'];
-                    });
-                  },
-                  onStartTimer: () {
-                    // Navigate to timer screen
-                    Navigator.push(
-                      context, 
-                      MaterialPageRoute(
-                        builder: (context) => PomodoroTimerPage(
-                          taskTitle: task['title'],
-                          projectName: widget.projectName,
-                          projectColor: widget.projectColor,
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  child: ListTile(
+                    leading: GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          task['completed'] = !task['completed'];
+                        });
+                      },
+                      child: Container(
+                        width: 24,
+                        height: 24,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.grey),
+                          color: task['completed'] ? Colors.green : Colors.transparent,
                         ),
+                        child: task['completed'] 
+                            ? const Icon(Icons.check, size: 18, color: Colors.white) 
+                            : null,
                       ),
-                    );
-                  },
+                    ),
+                    title: Text(
+                      task['title'],
+                      style: TextStyle(
+                        decoration: task['completed'] ? TextDecoration.lineThrough : null,
+                        color: task['completed'] ? Colors.grey : Colors.white,
+                      ),
+                    ),
+                    subtitle: task['pomodoros'] != null ? Row(
+                      children: [
+                        Icon(Icons.timer, size: 14, color: Theme.of(context).colorScheme.primary),
+                        Text(' ${task['pomodoros']}'),
+                        if (task['dueDate'] != null) ...[
+                          const SizedBox(width: 8),
+                          Icon(Icons.calendar_today, size: 14, color: Theme.of(context).colorScheme.primary),
+                          Text(' ${task['dueDate']}'),
+                        ],
+                      ],
+                    ) : null,
+                    trailing: IconButton(
+                      icon: Icon(Icons.play_arrow, color: Theme.of(context).colorScheme.primary),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => PomodoroPage(
+                              taskTitle: task['title'],
+                              projectName: widget.projectName,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
                 );
               },
             ),
           ),
-          
-          // Completed tasks toggle
-          if (_tasks.any((task) => task['isCompleted']))
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _showCompletedTasks = !_showCompletedTasks;
-                  });
-                },
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      _showCompletedTasks ? 'Hide Completed Tasks' : 'Show Completed Tasks',
-                      style: const TextStyle(color: Colors.grey),
-                    ),
-                    Icon(
-                      _showCompletedTasks ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                      color: Colors.grey,
-                    ),
-                  ],
-                ),
-              ),
-            ),
         ],
       ),
     );
   }
-  
+
+  Widget _statColumn(String value, String label) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 12, color: Colors.grey),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+
   void _showAddTaskDialog() {
-    final TextEditingController titleController = TextEditingController();
-    int pomodoroCount = 1;
+    final titleController = TextEditingController();
+    int pomodoros = 1;
 
     showDialog(
       context: context,
-      builder: (BuildContext context) {
+      builder: (context) {
         return AlertDialog(
-          backgroundColor: const Color(0xFF1E1E1E),
           title: const Text('Add Task'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TextField(
-                  controller: titleController,
-                  decoration: const InputDecoration(
-                    labelText: 'Task Name',
-                    border: OutlineInputBorder(),
-                  ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleController,
+                decoration: const InputDecoration(
+                  labelText: 'Task Name',
                 ),
-                const SizedBox(height: 16),
-                const Text('Estimated Pomodoros:'),
-                StatefulBuilder(
-                  builder: (context, setState) {
-                    return Row(
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.remove),
-                          onPressed: pomodoroCount > 1 ? () {
-                            setState(() {
-                              pomodoroCount--;
-                            });
-                          } : null,
-                        ),
-                        Text('$pomodoroCount', style: const TextStyle(fontSize: 18)),
-                        IconButton(
-                          icon: const Icon(Icons.add),
-                          onPressed: () {
-                            setState(() {
-                              pomodoroCount++;
-                            });
-                          },
-                        ),
-                      ],
-                    );
-                  }
-                ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 16),
+              const Text('Estimated Pomodoros:'),
+              StatefulBuilder(
+                builder: (context, setState) {
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.remove),
+                        onPressed: pomodoros > 1 ? () {
+                          setState(() => pomodoros--);
+                        } : null,
+                      ),
+                      Text('$pomodoros'),
+                      IconButton(
+                        icon: const Icon(Icons.add),
+                        onPressed: () {
+                          setState(() => pomodoros++);
+                        },
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ],
           ),
           actions: [
             TextButton(
+              onPressed: () => Navigator.pop(context),
               child: const Text('Cancel'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
             ),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.primary,
-              ),
-              child: const Text('Add'),
               onPressed: () {
                 if (titleController.text.isNotEmpty) {
                   setState(() {
-                    _tasks.add({
+                    tasks.add({
                       'title': titleController.text,
-                      'isCompleted': false,
-                      'pomodoroCount': pomodoroCount,
-                      'dueDate': null,
+                      'completed': false,
+                      'pomodoros': pomodoros,
                     });
                   });
-                  Navigator.of(context).pop();
+                  Navigator.pop(context);
                 }
               },
+              child: const Text('Add'),
             ),
           ],
         );
@@ -708,150 +490,31 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
   }
 }
 
-class TaskCard extends StatelessWidget {
-  final String title;
-  final bool isCompleted;
-  final int pomodoroCount;
-  final String? dueDate;
-  final Color projectColor;
-  final VoidCallback onToggleComplete;
-  final VoidCallback onStartTimer;
-
-  const TaskCard({
-    super.key,
-    required this.title,
-    required this.isCompleted,
-    required this.pomodoroCount,
-    this.dueDate,
-    required this.projectColor,
-    required this.onToggleComplete,
-    required this.onStartTimer,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8.0),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(
-          children: [
-            // Checkbox
-            GestureDetector(
-              onTap: onToggleComplete,
-              child: Container(
-                width: 24,
-                height: 24,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: isCompleted ? Colors.green : Colors.transparent,
-                  border: Border.all(
-                    color: isCompleted ? Colors.green : Colors.grey,
-                    width: 2,
-                  ),
-                ),
-                child: isCompleted
-                    ? const Icon(Icons.check, size: 16, color: Colors.white)
-                    : null,
-              ),
-            ),
-            const SizedBox(width: 16),
-            
-            // Task details
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: isCompleted ? FontWeight.normal : FontWeight.bold,
-                      decoration: isCompleted ? TextDecoration.lineThrough : null,
-                      color: isCompleted ? Colors.grey : Colors.white,
-                    ),
-                  ),
-                  if (pomodoroCount > 0) ...[
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Icon(Icons.timer, size: 14, color: Theme.of(context).colorScheme.primary),
-                        const SizedBox(width: 4),
-                        Text(
-                          '$pomodoroCount',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                  if (dueDate != null) ...[
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Icon(Icons.calendar_today, size: 14, color: Theme.of(context).colorScheme.primary),
-                        const SizedBox(width: 4),
-                        Text(
-                          dueDate!,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            
-            // Start timer button
-            IconButton(
-              icon: Icon(Icons.play_arrow, color: Theme.of(context).colorScheme.primary),
-              onPressed: onStartTimer,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class PomodoroTimerPage extends StatefulWidget {
+class PomodoroPage extends StatefulWidget {
   final String taskTitle;
   final String projectName;
-  final Color projectColor;
 
-  const PomodoroTimerPage({
-    super.key,
-    required this.taskTitle,
+  const PomodoroPage({
+    super.key, 
+    required this.taskTitle, 
     required this.projectName,
-    required this.projectColor,
   });
 
   @override
-  State<PomodoroTimerPage> createState() => _PomodoroTimerPageState();
+  State<PomodoroPage> createState() => _PomodoroPageState();
 }
 
-class _PomodoroTimerPageState extends State<PomodoroTimerPage> {
-  bool _isRunning = false;
-  int _minutes = 25;
-  int _seconds = 0;
-  
+class _PomodoroPageState extends State<PomodoroPage> {
+  bool isRunning = false;
+  int minutes = 25;
+  int seconds = 0;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
-        leading: IconButton(
-          icon: const Icon(Icons.close),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
         title: Text(widget.taskTitle),
       ),
       body: Center(
@@ -860,70 +523,58 @@ class _PomodoroTimerPageState extends State<PomodoroTimerPage> {
           children: [
             Text(
               widget.projectName,
-              style: const TextStyle(color: Colors.grey, fontSize: 16),
+              style: const TextStyle(color: Colors.grey),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
             Text(
-              '${_minutes.toString().padLeft(2, '0')}:${_seconds.toString().padLeft(2, '0')}',
+              '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}',
               style: const TextStyle(
-                fontSize: 80,
-                fontWeight: FontWeight.w300,
+                fontSize: 72,
+                fontWeight: FontWeight.w200,
                 color: Colors.white,
               ),
             ),
             const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text('Focus time', style: TextStyle(color: Colors.grey)),
-              ],
-            ),
+            const Text('Focus time', style: TextStyle(color: Colors.grey)),
             const SizedBox(height: 48),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Reset button
                 IconButton(
-                  icon: const Icon(Icons.replay, color: Colors.white, size: 28),
+                  icon: const Icon(Icons.refresh, color: Colors.white, size: 28),
                   onPressed: () {
                     setState(() {
-                      _minutes = 25;
-                      _seconds = 0;
-                      _isRunning = false;
+                      minutes = 25;
+                      seconds = 0;
+                      isRunning = false;
                     });
                   },
                 ),
-                const SizedBox(width: 32),
-                
-                // Play/Pause button
+                const SizedBox(width: 24),
                 GestureDetector(
                   onTap: () {
                     setState(() {
-                      _isRunning = !_isRunning;
+                      isRunning = !isRunning;
                     });
                   },
                   child: Container(
-                    width: 80,
-                    height: 80,
+                    width: 72,
+                    height: 72,
                     decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.primary,
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
-                      _isRunning ? Icons.pause : Icons.play_arrow,
+                      isRunning ? Icons.pause : Icons.play_arrow,
                       color: Colors.white,
-                      size: 40,
+                      size: 36,
                     ),
                   ),
                 ),
-                const SizedBox(width: 32),
-                
-                // Skip button
+                const SizedBox(width: 24),
                 IconButton(
                   icon: const Icon(Icons.skip_next, color: Colors.white, size: 28),
-                  onPressed: () {
-                    // Skip to next pomodoro/break
-                  },
+                  onPressed: () {},
                 ),
               ],
             ),
@@ -934,248 +585,122 @@ class _PomodoroTimerPageState extends State<PomodoroTimerPage> {
   }
 }
 
-class AnalyticsPage extends StatefulWidget {
+class AnalyticsPage extends StatelessWidget {
   const AnalyticsPage({super.key});
-
-  @override
-  State<AnalyticsPage> createState() => _AnalyticsPageState();
-}
-
-class _AnalyticsPageState extends State<AnalyticsPage> {
-  String _selectedView = 'Week';
-  String _dateRange = 'May 12 - May 18';
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Analytics'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
       ),
       body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // View selector
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(4.0),
-                  child: Row(
-                    children: [
-                      _viewButton('Day', _selectedView == 'Day', () {
-                        setState(() {
-                          _selectedView = 'Day';
-                        });
-                      }),
-                      _viewButton('Week', _selectedView == 'Week', () {
-                        setState(() {
-                          _selectedView = 'Week';
-                        });
-                      }),
-                      _viewButton('Month', _selectedView == 'Month', () {
-                        setState(() {
-                          _selectedView = 'Month';
-                        });
-                      }),
-                      _viewButton('Year', _selectedView == 'Year', () {
-                        setState(() {
-                          _selectedView = 'Year';
-                        });
-                      }),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            
-            // Date range selector
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            Card(
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.chevron_left),
-                    onPressed: () {
-                      // Previous date range
-                    },
-                  ),
-                  Text(_dateRange, style: const TextStyle(fontSize: 16)),
-                  IconButton(
-                    icon: const Icon(Icons.chevron_right),
-                    onPressed: () {
-                      // Next date range
-                    },
-                  ),
+                  _viewButton('Day', false),
+                  _viewButton('Week', true),
+                  _viewButton('Month', false),
+                  _viewButton('Year', false),
                 ],
               ),
             ),
             
-            // Tomato stats
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('Total Tomatoes', style: TextStyle(color: Colors.grey)),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Image.network(
-                                'https://em-content.zobj.net/thumbs/120/apple/354/tomato_1f345.png',
-                                width: 24,
-                                height: 24,
-                              ),
-                              const SizedBox(width: 8),
-                              const Text('39', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                        ],
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('Total Days', style: TextStyle(color: Colors.grey)),
-                          const SizedBox(height: 8),
-                          const Text('9', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                    ],
-                  ),
+            const SizedBox(height: 16),
+            
+            // Date range
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.chevron_left),
+                  onPressed: () {},
+                ),
+                const Text('May 12 - May 18'),
+                IconButton(
+                  icon: const Icon(Icons.chevron_right),
+                  onPressed: () {},
+                ),
+              ],
+            ),
+            
+            const SizedBox(height: 16),
+            
+            // Stats cards
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Total Tomatoes', style: TextStyle(color: Colors.grey)),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Icon(Icons.timer, color: Theme.of(context).colorScheme.primary),
+                            const SizedBox(width: 8),
+                            const Text('39', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ],
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Total Days', style: TextStyle(color: Colors.grey)),
+                        const SizedBox(height: 8),
+                        const Text('9', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ],
                 ),
               ),
             ),
+            
+            const SizedBox(height: 16),
             
             // Focus stats
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('Week\'s Focus', style: TextStyle(color: Colors.grey)),
-                              const SizedBox(height: 8),
-                              const Text('10h 21m', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('Total Focus', style: TextStyle(color: Colors.grey)),
-                              const SizedBox(height: 8),
-                              const Text('17h 59m', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-                      _focusBar('Focus', 0.42, const Color(0xFFE67E22), '4h15m'),
-                      const SizedBox(height: 12),
-                      _focusBar('Work', 0.37, const Color(0xFF2ECC71), '3h52m'),
-                      const SizedBox(height: 12),
-                      _focusBar('Read', 0.21, const Color(0xFFBDC581), '2h14m'),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            
-            // Weekly focus
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('Week\'s Focus', style: TextStyle(color: Colors.grey)),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Image.network(
-                                'https://em-content.zobj.net/thumbs/120/apple/354/tomato_1f345.png',
-                                width: 24,
-                                height: 24,
-                              ),
-                              const SizedBox(width: 8),
-                              const Text('21', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                        ],
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('Abandoned', style: TextStyle(color: Colors.grey)),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Image.network(
-                                'https://em-content.zobj.net/thumbs/120/apple/354/tomato_1f345.png',
-                                width: 24,
-                                height: 24,
-                              ),
-                              const SizedBox(width: 8),
-                              const Text('1', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            
-            // Week calendar
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('May 12, Mon', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 16),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          _dayButton('Mon', '12', true),
-                          _dayButton('Tue', '13', false),
-                          _dayButton('Wed', '14', false),
-                          _dayButton('Thu', '15', false),
-                          _dayButton('Fri', '16', false),
-                          _dayButton('Sat', '17', false),
-                          _dayButton('Sun', '18', true),
-                        ],
-                      ),
-                    ],
-                  ),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Week\'s Focus', style: TextStyle(color: Colors.grey)),
+                            const SizedBox(height: 8),
+                            const Text('10h 21m', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Total Focus', style: TextStyle(color: Colors.grey)),
+                            const SizedBox(height: 8),
+                            const Text('17h 59m', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    _focusBar(context, 'Focus', 0.42, const Color(0xFFE67E22), '4h15m'),
+                    const SizedBox(height: 12),
+                    _focusBar(context, 'Work', 0.37, const Color(0xFF2ECC71), '3h52m'),
+                    const SizedBox(height: 12),
+                    _focusBar(context, 'Read', 0.21, const Color(0xFFBDC581), '2h14m'),
+                  ],
                 ),
               ),
             ),
@@ -1184,82 +709,53 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
       ),
     );
   }
-  
-  Widget _viewButton(String text, bool isSelected, VoidCallback onTap) {
+
+  Widget _viewButton(String text, bool isSelected) {
     return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12.0),
-          decoration: BoxDecoration(
-            color: isSelected ? Colors.white : Colors.transparent,
-            borderRadius: BorderRadius.circular(25),
-          ),
-          child: Text(
-            text,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: isSelected ? Colors.black : Colors.grey,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-            ),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.white : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          text,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: isSelected ? Colors.black : Colors.grey,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
           ),
         ),
       ),
     );
   }
   
-  Widget _focusBar(String label, double percentage, Color color, String time) {
-    return Row(
+  Widget _focusBar(BuildContext context, String label, double percentage, Color color, String time) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(label, style: const TextStyle(color: Colors.white)),
-                  Text(time, style: const TextStyle(color: Colors.white)),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Container(
-                height: 24,
-                decoration: BoxDecoration(
-                  color: color,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                width: MediaQuery.of(context).size.width * percentage - 64,
-                child: Center(
-                  child: Text('${(percentage * 100).round()}%', 
-                    style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-            ],
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(label),
+            Text(time),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Container(
+          height: 24,
+          width: MediaQuery.of(context).size.width * percentage - 48,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            '${(percentage * 100).round()}%',
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           ),
         ),
       ],
-    );
-  }
-  
-  Widget _dayButton(String day, String date, bool isHighlighted) {
-    return Container(
-      width: 44,
-      height: 44,
-      decoration: BoxDecoration(
-        color: isHighlighted ? 
-          (day == 'Mon' ? const Color(0xFFE74C3C) : const Color(0xFF8E44AD)) : 
-          const Color(0xFF2C3E50),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(day, style: const TextStyle(fontSize: 10, color: Colors.white)),
-          Text(date, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
-        ],
-      ),
     );
   }
 }

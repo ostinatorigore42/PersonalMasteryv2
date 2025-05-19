@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Second Brain - Productivity App</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: #121212;
+            color: white;
+            margin: 0;
+            padding: 0;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 16px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 0;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .icon-button {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .projects-list {
+            margin-top: 16px;
+        }
+
+        .project-item {
+            display: flex;
+            align-items: center;
+            padding: 16px;
+            margin-bottom: 16px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            border-radius: 8px;
+        }
+
+        .project-item:hover {
+            background-color: #1E1E1E;
+        }
+
+        .project-color {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            margin-right: 16px;
+        }
+
+        .project-name {
+            flex-grow: 1;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .project-stats {
+            display: flex;
+            align-items: center;
+            color: #999;
+        }
+
+        .project-minutes {
+            margin-right: 24px;
+        }
+
+        .project-tasks {
+            font-weight: 500;
+            color: white;
+        }
+
+        .fab {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background-color: #E57373;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            border: none;
+            cursor: pointer;
+        }
+
+        /* Project Detail Styles */
+        .back-button {
+            color: white;
+            background: none;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            font-weight: 500;
+            padding: 0;
+            margin-right: 16px;
+        }
+
+        .stats-card {
+            background-color: #1E1E1E;
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-around;
+            text-align: center;
+        }
+
+        .stat-column h3 {
+            color: #E57373;
+            font-size: 24px;
+            margin: 8px 0;
+        }
+
+        .stat-column p {
+            color: #999;
+            font-size: 12px;
+            margin: 0;
+        }
+
+        .add-task-button {
+            background-color: #1E1E1E;
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .add-task-button span {
+            color: #999;
+            margin-left: 16px;
+        }
+
+        .task-item {
+            background-color: #1E1E1E;
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+        }
+
+        .task-checkbox {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid #999;
+            margin-right: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .task-checkbox.completed {
+            background-color: #4CAF50;
+            border-color: #4CAF50;
+        }
+
+        .task-details {
+            flex-grow: 1;
+        }
+
+        .task-title {
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .task-title.completed {
+            text-decoration: line-through;
+            color: #999;
+        }
+
+        .task-meta {
+            display: flex;
+            font-size: 12px;
+            color: #E57373;
+        }
+
+        .task-meta-item {
+            display: flex;
+            align-items: center;
+            margin-right: 16px;
+        }
+
+        .task-meta-item i {
+            font-size: 14px;
+            margin-right: 4px;
+        }
+
+        .task-play {
+            color: #E57373;
+            cursor: pointer;
+        }
+
+        /* Pomodoro Timer Styles */
+        .timer-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 80vh;
+            background-color: black;
+        }
+
+        .timer-project {
+            color: #999;
+            margin-bottom: 24px;
+        }
+
+        .timer-time {
+            font-size: 72px;
+            font-weight: 300;
+            margin-bottom: 16px;
+        }
+
+        .timer-label {
+            color: #999;
+            margin-bottom: 48px;
+        }
+
+        .timer-controls {
+            display: flex;
+            align-items: center;
+        }
+
+        .timer-button {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 28px;
+            cursor: pointer;
+            margin: 0 16px;
+        }
+
+        .timer-play {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            background-color: #E57373;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 24px;
+        }
+
+        /* Analytics Styles */
+        .tabs {
+            display: flex;
+            background-color: #1E1E1E;
+            border-radius: 25px;
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 12px;
+            cursor: pointer;
+        }
+
+        .tab.active {
+            background-color: white;
+            color: black;
+            font-weight: 600;
+        }
+
+        .date-selector {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .focus-bar {
+            margin-bottom: 12px;
+        }
+
+        .focus-bar-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+
+        .focus-bar-progress {
+            height: 24px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 12px;
+        }
+
+        .focus-orange {
+            background-color: #E67E22;
+        }
+
+        .focus-green {
+            background-color: #2ECC71;
+        }
+
+        .focus-yellow {
+            background-color: #BDC581;
+        }
+
+        .week-calendar {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 16px;
+        }
+
+        .day-button {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background-color: #2C3E50;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .day-button.active {
+            background-color: #E74C3C;
+        }
+
+        .day-button.active-sunday {
+            background-color: #8E44AD;
+        }
+
+        .day-name {
+            font-size: 10px;
+        }
+
+        .day-date {
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        /* Views */
+        #projects-view, #tasks-view, #timer-view, #analytics-view {
+            display: none;
+        }
+
+        #projects-view {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <!-- Projects View -->
+    <div id="projects-view">
+        <div class="container">
+            <div class="header">
+                <h1>Projects</h1>
+                <button class="icon-button" onclick="showView('analytics-view')">
+                    <span class="material-icons">insights</span>
+                </button>
+            </div>
+            <div class="projects-list">
+                <div class="project-item" onclick="showView('tasks-view', 'Academic Education', '#9C27B0')">
+                    <div class="project-color" style="background-color: #9C27B0;"></div>
+                    <div class="project-name">Academic Education</div>
+                    <div class="project-stats">
+                        <div class="project-minutes">0m</div>
+                        <div class="project-tasks">5</div>
+                    </div>
+                </div>
+                <div class="project-item" onclick="showView('tasks-view', 'Reading', '#00BCD4')">
+                    <div class="project-color" style="background-color: #00BCD4;"></div>
+                    <div class="project-name">Reading</div>
+                    <div class="project-stats">
+                        <div class="project-minutes">0m</div>
+                        <div class="project-tasks">1</div>
+                    </div>
+                </div>
+                <div class="project-item" onclick="showView('tasks-view', 'Self-improvement Leisure', '#E91E63')">
+                    <div class="project-color" style="background-color: #E91E63;"></div>
+                    <div class="project-name">Self-improvement Leisure</div>
+                    <div class="project-stats">
+                        <div class="project-minutes">0m</div>
+                        <div class="project-tasks">3</div>
+                    </div>
+                </div>
+                <div class="project-item" onclick="showView('tasks-view', 'Zeitgeist', '#FF9800')">
+                    <div class="project-color" style="background-color: #FF9800;"></div>
+                    <div class="project-name">Zeitgeist</div>
+                    <div class="project-stats">
+                        <div class="project-minutes">0m</div>
+                        <div class="project-tasks">4</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <button class="fab" onclick="alert('Add Project clicked')">
+            <span class="material-icons">add</span>
+        </button>
+    </div>
+
+    <!-- Task List View -->
+    <div id="tasks-view">
+        <div class="container">
+            <div class="header">
+                <button class="back-button" onclick="showView('projects-view')">
+                    <span class="material-icons">arrow_back</span>
+                </button>
+                <h1 id="project-title">Reading</h1>
+                <button class="icon-button" onclick="toggleCompletedTasks()">
+                    <span class="material-icons" id="completed-icon">check_circle_outline</span>
+                </button>
+            </div>
+            <div class="stats-card">
+                <div class="stat-column">
+                    <p>HH&nbsp;&nbsp;&nbsp;&nbsp;MM</p>
+                    <h3>00:00</h3>
+                    <p>Estimated Time</p>
+                </div>
+                <div class="stat-column">
+                    <p>&nbsp;</p>
+                    <h3>1</h3>
+                    <p>Tasks to be Completed</p>
+                </div>
+                <div class="stat-column">
+                    <p>HH&nbsp;&nbsp;&nbsp;&nbsp;MM</p>
+                    <h3>75:27</h3>
+                    <p>Elapsed Time</p>
+                </div>
+                <div class="stat-column">
+                    <p>&nbsp;</p>
+                    <h3>8</h3>
+                    <p>Completed Tasks</p>
+                </div>
+            </div>
+            <div class="add-task-button" onclick="alert('Add task clicked')">
+                <span class="material-icons">add</span>
+                <span>Add a task...</span>
+            </div>
+            <div class="tasks-list">
+                <div class="task-item">
+                    <div class="task-checkbox" onclick="toggleTaskCompleted(this)"></div>
+                    <div class="task-details">
+                        <div class="task-title">Descartes Error</div>
+                        <div class="task-meta">
+                            <div class="task-meta-item">
+                                <i class="material-icons">timer</i>
+                                <span>9</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="task-play" onclick="showView('timer-view', 'Descartes Error', '#00BCD4')">
+                        <span class="material-icons">play_arrow</span>
+                    </div>
+                </div>
+                <div class="task-item completed-task">
+                    <div class="task-checkbox completed" onclick="toggleTaskCompleted(this)">
+                        <span class="material-icons" style="color: white; font-size: 16px;">check</span>
+                    </div>
+                    <div class="task-details">
+                        <div class="task-title completed">Homo Deus</div>
+                        <div class="task-meta">
+                            <div class="task-meta-item">
+                                <i class="material-icons">timer</i>
+                                <span>15</span>
+                            </div>
+                            <div class="task-meta-item">
+                                <i class="material-icons">calendar_today</i>
+                                <span>Sun, 15 Jan 2023</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="task-play" onclick="showView('timer-view', 'Homo Deus', '#00BCD4')">
+                        <span class="material-icons">play_arrow</span>
+                    </div>
+                </div>
+                <div class="task-item completed-task">
+                    <div class="task-checkbox completed" onclick="toggleTaskCompleted(this)">
+                        <span class="material-icons" style="color: white; font-size: 16px;">check</span>
+                    </div>
+                    <div class="task-details">
+                        <div class="task-title completed">Webs of Humankind: Ch 25</div>
+                        <div class="task-meta">
+                            <div class="task-meta-item">
+                                <i class="material-icons">timer</i>
+                                <span>1</span>
+                            </div>
+                            <div class="task-meta-item">
+                                <i class="material-icons">calendar_today</i>
+                                <span>Fri, 6 Jan 2023</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="task-play" onclick="showView('timer-view', 'Webs of Humankind: Ch 25', '#00BCD4')">
+                        <span class="material-icons">play_arrow</span>
+                    </div>
+                </div>
+            </div>
+            <div style="text-align: center; margin-top: 16px;">
+                <span onclick="toggleCompletedTasks()" style="color: #999; cursor: pointer;">
+                    <span id="show-completed-text">Show Completed Tasks</span> 
+                    <span class="material-icons" style="vertical-align: middle;">keyboard_arrow_down</span>
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pomodoro Timer View -->
+    <div id="timer-view">
+        <div class="container">
+            <div class="header">
+                <button class="back-button" onclick="showView('tasks-view')">
+                    <span class="material-icons">close</span>
+                </button>
+                <h1 id="timer-task-title">Descartes Error</h1>
+                <div></div>
+            </div>
+            <div class="timer-container">
+                <div class="timer-project" id="timer-project-name">Reading</div>
+                <div class="timer-time">25:00</div>
+                <div class="timer-label">Focus time</div>
+                <div class="timer-controls">
+                    <button class="timer-button">
+                        <span class="material-icons">replay</span>
+                    </button>
+                    <button class="timer-play">
+                        <span class="material-icons" style="font-size: 36px;">play_arrow</span>
+                    </button>
+                    <button class="timer-button">
+                        <span class="material-icons">skip_next</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analytics View -->
+    <div id="analytics-view">
+        <div class="container">
+            <div class="header">
+                <button class="back-button" onclick="showView('projects-view')">
+                    <span class="material-icons">arrow_back</span>
+                </button>
+                <h1>Analytics</h1>
+                <div></div>
+            </div>
+            <div class="tabs">
+                <div class="tab">Day</div>
+                <div class="tab active">Week</div>
+                <div class="tab">Month</div>
+                <div class="tab">Year</div>
+            </div>
+            <div class="date-selector">
+                <button class="icon-button">
+                    <span class="material-icons">chevron_left</span>
+                </button>
+                <span>May 12 - May 18</span>
+                <button class="icon-button">
+                    <span class="material-icons">chevron_right</span>
+                </button>
+            </div>
+            <div class="stats-card">
+                <div class="stat-column">
+                    <p>Total Tomatoes</p>
+                    <h3>🍅 39</h3>
+                </div>
+                <div class="stat-column">
+                    <p>Total Days</p>
+                    <h3>9</h3>
+                </div>
+            </div>
+            <div class="stats-card">
+                <div style="width: 100%;">
+                    <div style="display: flex; justify-content: space-between; width: 100%;">
+                        <div class="stat-column" style="text-align: left;">
+                            <p>Week's Focus</p>
+                            <h3>10h 21m</h3>
+                        </div>
+                        <div class="stat-column" style="text-align: right;">
+                            <p>Total Focus</p>
+                            <h3>17h 59m</h3>
+                        </div>
+                    </div>
+                    <div style="margin-top: 24px;">
+                        <div class="focus-bar">
+                            <div class="focus-bar-header">
+                                <div>Focus</div>
+                                <div>4h15m</div>
+                            </div>
+                            <div class="focus-bar-progress focus-orange" style="width: 42%;">42%</div>
+                        </div>
+                        <div class="focus-bar">
+                            <div class="focus-bar-header">
+                                <div>Work</div>
+                                <div>3h52m</div>
+                            </div>
+                            <div class="focus-bar-progress focus-green" style="width: 37%;">37%</div>
+                        </div>
+                        <div class="focus-bar">
+                            <div class="focus-bar-header">
+                                <div>Read</div>
+                                <div>2h14m</div>
+                            </div>
+                            <div class="focus-bar-progress focus-yellow" style="width: 21%;">21%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="stats-card">
+                <div class="stat-column">
+                    <p>Week's Focus</p>
+                    <h3>🍅 21</h3>
+                </div>
+                <div class="stat-column">
+                    <p>Abandoned</p>
+                    <h3>🍅 1</h3>
+                </div>
+            </div>
+            <div class="stats-card" style="flex-direction: column;">
+                <h2>May 12, Mon</h2>
+                <div class="week-calendar">
+                    <div class="day-button active">
+                        <div class="day-name">Mon</div>
+                        <div class="day-date">12</div>
+                    </div>
+                    <div class="day-button">
+                        <div class="day-name">Tue</div>
+                        <div class="day-date">13</div>
+                    </div>
+                    <div class="day-button">
+                        <div class="day-name">Wed</div>
+                        <div class="day-date">14</div>
+                    </div>
+                    <div class="day-button">
+                        <div class="day-name">Thu</div>
+                        <div class="day-date">15</div>
+                    </div>
+                    <div class="day-button">
+                        <div class="day-name">Fri</div>
+                        <div class="day-date">16</div>
+                    </div>
+                    <div class="day-button">
+                        <div class="day-name">Sat</div>
+                        <div class="day-date">17</div>
+                    </div>
+                    <div class="day-button active-sunday">
+                        <div class="day-name">Sun</div>
+                        <div class="day-date">18</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            // Hide completed tasks initially
+            document.querySelectorAll('.completed-task').forEach(function(task) {
+                task.style.display = 'none';
+            });
+        });
+
+        // Show the selected view and hide others
+        function showView(viewId, title, color) {
+            document.getElementById('projects-view').style.display = 'none';
+            document.getElementById('tasks-view').style.display = 'none';
+            document.getElementById('timer-view').style.display = 'none';
+            document.getElementById('analytics-view').style.display = 'none';
+            
+            document.getElementById(viewId).style.display = 'block';
+            
+            if (viewId === 'tasks-view' && title) {
+                document.getElementById('project-title').textContent = title;
+                document.getElementById('project-title').style.color = color;
+            }
+            
+            if (viewId === 'timer-view' && title) {
+                document.getElementById('timer-task-title').textContent = title;
+                if (title.includes('Descartes') || title.includes('Homo') || title.includes('Webs')) {
+                    document.getElementById('timer-project-name').textContent = 'Reading';
+                }
+            }
+        }
+
+        // Toggle completed tasks visibility
+        let showingCompleted = false;
+        function toggleCompletedTasks() {
+            showingCompleted = !showingCompleted;
+            
+            document.querySelectorAll('.completed-task').forEach(function(task) {
+                task.style.display = showingCompleted ? 'flex' : 'none';
+            });
+            
+            document.getElementById('completed-icon').textContent = 
+                showingCompleted ? 'check_circle' : 'check_circle_outline';
+                
+            document.getElementById('show-completed-text').textContent = 
+                showingCompleted ? 'Hide Completed Tasks' : 'Show Completed Tasks';
+        }
+
+        // Toggle task completion
+        function toggleTaskCompleted(checkbox) {
+            const taskItem = checkbox.closest('.task-item');
+            const taskTitle = taskItem.querySelector('.task-title');
+            
+            if (checkbox.classList.contains('completed')) {
+                checkbox.classList.remove('completed');
+                checkbox.innerHTML = '';
+                taskTitle.classList.remove('completed');
+                taskItem.classList.remove('completed-task');
+            } else {
+                checkbox.classList.add('completed');
+                checkbox.innerHTML = '<span class="material-icons" style="color: white; font-size: 16px;">check</span>';
+                taskTitle.classList.add('completed');
+                taskItem.classList.add('completed-task');
+            }
+        }
+    </script>
+</body>
+</html>

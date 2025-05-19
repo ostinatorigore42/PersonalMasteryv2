@@ -1,4 +1,4 @@
-modules = ["flutter"]
+modules = ["flutter", "python-3.11"]
 
 [nix]
 channel = "stable-24_05"
@@ -14,15 +14,28 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Flutter App"
+args = "Flutter App Static"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "HTML App"
 
 [[workflows.workflow]]
-name = "Flutter App"
+name = "Flutter App Static"
 author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "flutter run -d web-server --web-hostname=0.0.0.0 --web-port=5000"
+args = "cd build/web && python3 -m http.server 5000 --bind 0.0.0.0"
+waitForPort = 5000
+
+[[workflows.workflow]]
+name = "HTML App"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python3 -m http.server 5000 --bind 0.0.0.0"
 waitForPort = 5000
 
 [deployment]
