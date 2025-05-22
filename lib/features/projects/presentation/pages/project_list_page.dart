@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; // Import Firestore
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/route_constants.dart';
+import '../../../../core/services/firebase_service.dart'; // Import FirebaseService
+import '../../../../models/task.dart'; // Import Task model
 import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/loading_indicator.dart';
 import '../bloc/project_bloc.dart';
@@ -16,10 +19,12 @@ class ProjectListPage extends StatefulWidget {
 
 class _ProjectListPageState extends State<ProjectListPage> {
   bool _showArchived = false;
+  late final FirebaseService _firebaseService; // Initialize FirebaseService
 
   @override
   void initState() {
     super.initState();
+    _firebaseService = FirebaseService.instance; // Get instance
     _loadProjects();
   }
 
@@ -213,19 +218,42 @@ class _ProjectListPageState extends State<ProjectListPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      FutureBuilder<int>(
-                        future: context.read<ProjectBloc>().projectRepository.getTasksCountForProject(
-                              projectId,
-                              onlyIncomplete: true,
-                            ),
+                      // Use StreamBuilder to get tasks and calculate stats
+                      StreamBuilder<QuerySnapshot>(
+                        stream: _firebaseService.getUserCollection(
+                          'projects/${projectId}/tasks',
+                        ).snapshots(),
                         builder: (context, snapshot) {
-                          final count = snapshot.data ?? 0;
-                          return Text(
-                            '$count active tasks',
-                            style: TextStyle(
-                              color: isArchived ? Colors.grey : color,
-                              fontWeight: FontWeight.bold,
-                            ),
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return const SizedBox(); // Or a loading indicator
+                          }
+                          if (snapshot.hasError) {
+                            return Text('Error: ${snapshot.error}');
+                          }
+
+                          final tasks = snapshot.data?.docs.map((doc) => Task.fromFirestore(doc)).toList() ?? [];
+
+                          final ongoingTasks = tasks.where((task) => !task.completed).length;
+                          final totalElapsedTime = tasks.fold(0, (sum, task) => sum + task.elapsedTime);
+
+                          return Row(
+                            children: [
+                              Text(
+                                _formatDuration(totalElapsedTime),
+                                style: TextStyle(
+                                  color: isArchived ? Colors.grey : color,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Text(
+                                '$ongoingTasks active tasks',
+                                style: TextStyle(
+                                  color: isArchived ? Colors.grey : color,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
                           );
                         },
                       ),
@@ -337,6 +365,12 @@ class _ProjectListPageState extends State<ProjectListPage> {
         );
       },
     );
+  }
+
+  String _formatDuration(int seconds) {
+    final minutes = seconds ~/ 60;
+    final remainingSeconds = seconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
   }
 }
 

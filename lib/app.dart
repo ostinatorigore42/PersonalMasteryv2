@@ -41,6 +41,8 @@ class SecondBrainApp extends StatelessWidget {
         BlocProvider<HomeBloc>(
           create: (context) => HomeBloc(
             homeRepository: GetIt.instance.get(),
+            projectRepository: GetIt.instance.get(),
+            goalRepository: GetIt.instance.get(),
           ),
         ),
         BlocProvider<ProjectBloc>(

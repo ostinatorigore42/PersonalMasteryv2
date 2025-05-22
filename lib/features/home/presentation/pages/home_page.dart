@@ -103,17 +103,17 @@ class _HomePageState extends State<HomePage> {
             builder: (context, state) {
               if (state is AuthAuthenticated) {
                 return UserAccountsDrawerHeader(
-                  accountName: Text(state.user.displayName ?? 'User'),
-                  accountEmail: Text(state.user.email),
+                  accountName: Text(state.name ?? 'User'),
+                  accountEmail: Text(state.email),
                   currentAccountPicture: CircleAvatar(
-                    backgroundImage: state.user.photoUrl != null
-                        ? NetworkImage(state.user.photoUrl!)
+                    backgroundImage: state.photoUrl != null
+                        ? NetworkImage(state.photoUrl!)
                         : null,
-                    child: state.user.photoUrl == null
+                    child: state.photoUrl == null
                         ? Text(
-                            (state.user.displayName?.isNotEmpty == true)
-                                ? state.user.displayName![0].toUpperCase()
-                                : state.user.email[0].toUpperCase(),
+                            (state.name?.isNotEmpty == true)
+                                ? state.name![0].toUpperCase()
+                                : state.email[0].toUpperCase(),
                             style: const TextStyle(fontSize: 24),
                           )
                         : null,
@@ -250,68 +250,33 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildGreetingSection(Map<String, dynamic> dailyFocus) {
-    final greeting = dailyFocus['greeting'] as String? ?? DateTimeUtils.getGreeting();
-    final ageInDays = dailyFocus['ageInDays'] as int? ?? 0;
-    final yesterdayRating = dailyFocus['yesterdayAverageRating'] as double?;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          greeting,
-          style: const TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Today is ${DateFormat('EEEE, MMMM d, yyyy').format(DateTime.now())}',
-          style: TextStyle(
-            fontSize: 16,
-            color: Colors.grey[600],
-          ),
-        ),
-        if (ageInDays > 0) ...[
-          const SizedBox(height: 4),
-          Text(
-            'Day $ageInDays of your life',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[600],
-              fontStyle: FontStyle.italic,
-            ),
-          ),
-        ],
-        if (yesterdayRating != null) ...[
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: _getRatingColor(yesterdayRating).withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  _getRatingIcon(yesterdayRating),
-                  color: _getRatingColor(yesterdayRating),
+    return BlocBuilder<AuthBloc, AuthState>(
+      builder: (context, state) {
+        if (state is AuthAuthenticated) {
+          final userName = state.name ?? state.email.split('@')[0];
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Welcome back, $userName!',
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Yesterday\'s average focus rating: ${yesterdayRating.toStringAsFixed(1)}/5.0',
-                    style: TextStyle(
-                      color: _getRatingColor(yesterdayRating),
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                dailyFocus['message'] as String? ?? 'Have a productive day!',
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey,
                 ),
-              ],
-            ),
-          ),
-        ],
-      ],
+              ),
+            ],
+          );
+        }
+        return const SizedBox.shrink();
+      },
     );
   }
 

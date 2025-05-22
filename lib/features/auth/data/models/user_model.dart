@@ -1,4 +1,5 @@
 import 'package:hive/hive.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 /// Model representing a user in the app
 class UserModel {
@@ -9,7 +10,7 @@ class UserModel {
   final DateTime createdAt;
   final DateTime lastLogin;
   final DateTime? birthDate;
-  final Map<String, dynamic>? preferences;
+  final Map<String, dynamic> preferences;
   
   UserModel({
     required this.uid,
@@ -19,7 +20,7 @@ class UserModel {
     required this.createdAt,
     required this.lastLogin,
     this.birthDate,
-    this.preferences,
+    this.preferences = const {},
   });
   
   // Create from Firebase User and additional data
@@ -29,10 +30,12 @@ class UserModel {
       email: data['email'] as String,
       displayName: data['displayName'] as String?,
       photoUrl: data['photoURL'] as String?,
-      createdAt: (data['createdAt'] as dynamic).toDate(),
-      lastLogin: (data['lastLogin'] as dynamic).toDate(),
-      birthDate: data['birthDate'] != null ? (data['birthDate'] as dynamic).toDate() : null,
-      preferences: data['preferences'] as Map<String, dynamic>?,
+      createdAt: (data['createdAt'] as Timestamp).toDate(),
+      lastLogin: (data['lastLogin'] as Timestamp).toDate(),
+      birthDate: data['birthDate'] != null 
+          ? (data['birthDate'] as Timestamp).toDate()
+          : null,
+      preferences: data['preferences'] as Map<String, dynamic>? ?? {},
     );
   }
   
@@ -56,7 +59,7 @@ class UserModel {
       'uid': uid,
       'email': email,
       'displayName': displayName,
-      'photoUrl': photoUrl,
+      'photoURL': photoUrl,
       'createdAt': createdAt.toIso8601String(),
       'lastLogin': lastLogin.toIso8601String(),
       'birthDate': birthDate?.toIso8601String(),
@@ -70,7 +73,7 @@ class UserModel {
       uid: json['uid'] as String,
       email: json['email'] as String,
       displayName: json['displayName'] as String?,
-      photoUrl: json['photoUrl'] as String?,
+      photoUrl: json['photoURL'] as String?,
       createdAt: DateTime.parse(json['createdAt'] as String),
       lastLogin: DateTime.parse(json['lastLogin'] as String),
       birthDate: json['birthDate'] != null ? DateTime.parse(json['birthDate'] as String) : null,
@@ -80,18 +83,21 @@ class UserModel {
   
   // Copy with method for updating user properties
   UserModel copyWith({
+    String? uid,
+    String? email,
     String? displayName,
     String? photoUrl,
+    DateTime? createdAt,
     DateTime? lastLogin,
     DateTime? birthDate,
     Map<String, dynamic>? preferences,
   }) {
     return UserModel(
-      uid: uid,
-      email: email,
+      uid: uid ?? this.uid,
+      email: email ?? this.email,
       displayName: displayName ?? this.displayName,
       photoUrl: photoUrl ?? this.photoUrl,
-      createdAt: createdAt,
+      createdAt: createdAt ?? this.createdAt,
       lastLogin: lastLogin ?? this.lastLogin,
       birthDate: birthDate ?? this.birthDate,
       preferences: preferences ?? this.preferences,

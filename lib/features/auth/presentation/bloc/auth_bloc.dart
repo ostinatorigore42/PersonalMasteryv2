@@ -1,15 +1,11 @@
-import 'dart:async';
-import 'package:bloc/bloc.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:meta/meta.dart';
-
-import '../../data/models/user_model.dart';
 import '../../domain/repositories/auth_repository.dart';
 
 // Events
-@immutable
 abstract class AuthEvent extends Equatable {
+  const AuthEvent();
+
   @override
   List<Object?> get props => [];
 }
@@ -19,70 +15,66 @@ class AuthCheckStatusEvent extends AuthEvent {}
 class AuthRegisterEvent extends AuthEvent {
   final String email;
   final String password;
-  final String? displayName;
-  final DateTime? birthDate;
-  
-  AuthRegisterEvent({
+  final String name;
+
+  const AuthRegisterEvent({
     required this.email,
     required this.password,
-    this.displayName,
-    this.birthDate,
+    required this.name,
   });
-  
+
   @override
-  List<Object?> get props => [email, password, displayName, birthDate];
+  List<Object?> get props => [email, password, name];
 }
 
 class AuthLoginEvent extends AuthEvent {
   final String email;
   final String password;
-  
-  AuthLoginEvent({
+  final bool rememberMe;
+
+  const AuthLoginEvent({
     required this.email,
     required this.password,
+    this.rememberMe = false,
   });
-  
+
   @override
-  List<Object?> get props => [email, password];
+  List<Object?> get props => [email, password, rememberMe];
 }
 
 class AuthLogoutEvent extends AuthEvent {}
 
 class AuthResetPasswordEvent extends AuthEvent {
   final String email;
-  
-  AuthResetPasswordEvent({required this.email});
-  
+
+  const AuthResetPasswordEvent({required this.email});
+
   @override
   List<Object?> get props => [email];
 }
 
 class AuthUpdateProfileEvent extends AuthEvent {
-  final String? displayName;
+  final String name;
   final String? photoUrl;
-  final DateTime? birthDate;
-  final Map<String, dynamic>? preferences;
-  
-  AuthUpdateProfileEvent({
-    this.displayName,
+
+  const AuthUpdateProfileEvent({
+    required this.name,
     this.photoUrl,
-    this.birthDate,
-    this.preferences,
   });
-  
+
   @override
-  List<Object?> get props => [displayName, photoUrl, birthDate, preferences];
+  List<Object?> get props => [name, photoUrl];
 }
 
 class AuthChangeEmailEvent extends AuthEvent {
   final String newEmail;
   final String password;
-  
-  AuthChangeEmailEvent({
+
+  const AuthChangeEmailEvent({
     required this.newEmail,
     required this.password,
   });
-  
+
   @override
   List<Object?> get props => [newEmail, password];
 }
@@ -90,28 +82,29 @@ class AuthChangeEmailEvent extends AuthEvent {
 class AuthChangePasswordEvent extends AuthEvent {
   final String currentPassword;
   final String newPassword;
-  
-  AuthChangePasswordEvent({
+
+  const AuthChangePasswordEvent({
     required this.currentPassword,
     required this.newPassword,
   });
-  
+
   @override
   List<Object?> get props => [currentPassword, newPassword];
 }
 
 class AuthDeleteAccountEvent extends AuthEvent {
   final String password;
-  
-  AuthDeleteAccountEvent({required this.password});
-  
+
+  const AuthDeleteAccountEvent({required this.password});
+
   @override
   List<Object?> get props => [password];
 }
 
 // States
-@immutable
 abstract class AuthState extends Equatable {
+  const AuthState();
+
   @override
   List<Object?> get props => [];
 }
@@ -121,30 +114,29 @@ class AuthInitial extends AuthState {}
 class AuthLoading extends AuthState {}
 
 class AuthAuthenticated extends AuthState {
-  final UserModel user;
-  
-  AuthAuthenticated(this.user);
-  
+  final String userId;
+  final String email;
+  final String? name;
+  final String? photoUrl;
+
+  const AuthAuthenticated({
+    required this.userId,
+    required this.email,
+    this.name,
+    this.photoUrl,
+  });
+
   @override
-  List<Object?> get props => [user];
+  List<Object?> get props => [userId, email, name, photoUrl];
 }
 
 class AuthUnauthenticated extends AuthState {}
 
 class AuthError extends AuthState {
   final String message;
-  
-  AuthError(this.message);
-  
-  @override
-  List<Object?> get props => [message];
-}
 
-class AuthSuccess extends AuthState {
-  final String message;
-  
-  AuthSuccess(this.message);
-  
+  const AuthError(this.message);
+
   @override
   List<Object?> get props => [message];
 }
@@ -152,19 +144,8 @@ class AuthSuccess extends AuthState {
 // Bloc
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final AuthRepository authRepository;
-  StreamSubscription? _authSubscription;
-  
+
   AuthBloc({required this.authRepository}) : super(AuthInitial()) {
-    _authSubscription = authRepository.authStateChanges.listen(
-      (User? user) {
-        if (user != null) {
-          add(AuthCheckStatusEvent());
-        } else {
-          emit(AuthUnauthenticated());
-        }
-      },
-    );
-    
     on<AuthCheckStatusEvent>(_onAuthCheckStatus);
     on<AuthRegisterEvent>(_onAuthRegister);
     on<AuthLoginEvent>(_onAuthLogin);
@@ -175,197 +156,181 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthChangePasswordEvent>(_onAuthChangePassword);
     on<AuthDeleteAccountEvent>(_onAuthDeleteAccount);
   }
-  
+
   Future<void> _onAuthCheckStatus(
-    AuthCheckStatusEvent event, 
+    AuthCheckStatusEvent event,
     Emitter<AuthState> emit,
   ) async {
     try {
-      emit(AuthLoading());
-      
-      if (authRepository.isAuthenticated) {
-        final userModel = await authRepository.getCurrentUserModel();
-        
-        if (userModel != null) {
-          emit(AuthAuthenticated(userModel));
-        } else {
-          emit(AuthUnauthenticated());
-        }
+      final user = await authRepository.getCurrentUser();
+      if (user != null) {
+        emit(AuthAuthenticated(
+          userId: user.uid,
+          email: user.email ?? '',
+          name: user.displayName,
+          photoUrl: user.photoURL,
+        ));
       } else {
         emit(AuthUnauthenticated());
       }
     } catch (e) {
-      emit(AuthError('Failed to check authentication status: $e'));
-      emit(AuthUnauthenticated());
+      emit(AuthError(e.toString()));
     }
   }
-  
+
   Future<void> _onAuthRegister(
-    AuthRegisterEvent event, 
+    AuthRegisterEvent event,
     Emitter<AuthState> emit,
   ) async {
+    emit(AuthLoading());
     try {
-      emit(AuthLoading());
-      
-      final userModel = await authRepository.register(
+      final user = await authRepository.register(
         email: event.email,
         password: event.password,
-        displayName: event.displayName,
-        birthDate: event.birthDate,
+        name: event.name,
       );
-      
-      emit(AuthAuthenticated(userModel));
+      emit(AuthAuthenticated(
+        userId: user.uid,
+        email: user.email ?? '',
+        name: user.displayName,
+        photoUrl: user.photoURL,
+      ));
     } catch (e) {
-      emit(AuthError('Registration failed: $e'));
+      emit(AuthError(e.toString()));
     }
   }
-  
+
   Future<void> _onAuthLogin(
-    AuthLoginEvent event, 
+    AuthLoginEvent event,
     Emitter<AuthState> emit,
   ) async {
+    emit(AuthLoading());
     try {
-      emit(AuthLoading());
-      
-      final userModel = await authRepository.login(
+      final user = await authRepository.signInWithEmailAndPassword(
         email: event.email,
         password: event.password,
+        rememberMe: event.rememberMe,
       );
-      
-      emit(AuthAuthenticated(userModel));
+      emit(AuthAuthenticated(
+        userId: user.uid,
+        email: user.email ?? '',
+        name: user.displayName,
+        photoUrl: user.photoURL,
+      ));
     } catch (e) {
-      emit(AuthError('Login failed: $e'));
+      emit(AuthError(e.toString()));
     }
   }
-  
+
   Future<void> _onAuthLogout(
-    AuthLogoutEvent event, 
+    AuthLogoutEvent event,
     Emitter<AuthState> emit,
   ) async {
+    emit(AuthLoading());
     try {
-      emit(AuthLoading());
-      
-      await authRepository.logout();
-      
+      await authRepository.signOut();
       emit(AuthUnauthenticated());
     } catch (e) {
-      emit(AuthError('Logout failed: $e'));
+      emit(AuthError(e.toString()));
     }
   }
-  
+
   Future<void> _onAuthResetPassword(
-    AuthResetPasswordEvent event, 
+    AuthResetPasswordEvent event,
     Emitter<AuthState> emit,
   ) async {
+    emit(AuthLoading());
     try {
-      emit(AuthLoading());
-      
       await authRepository.resetPassword(event.email);
-      
-      emit(AuthSuccess('Password reset email sent!'));
+      final currentState = state;
+      if (currentState is AuthAuthenticated) {
+        emit(currentState);
+      } else {
+        emit(AuthUnauthenticated());
+      }
     } catch (e) {
-      emit(AuthError('Password reset failed: $e'));
+      emit(AuthError(e.toString()));
     }
   }
-  
+
   Future<void> _onAuthUpdateProfile(
-    AuthUpdateProfileEvent event, 
+    AuthUpdateProfileEvent event,
     Emitter<AuthState> emit,
   ) async {
+    emit(AuthLoading());
     try {
-      final currentState = state;
-      
-      if (currentState is AuthAuthenticated) {
-        emit(AuthLoading());
-        
-        await authRepository.updateUserProfile(
-          displayName: event.displayName,
-          photoUrl: event.photoUrl,
-          birthDate: event.birthDate,
-          preferences: event.preferences,
-        );
-        
-        final updatedUser = await authRepository.getCurrentUserModel();
-        
-        if (updatedUser != null) {
-          emit(AuthAuthenticated(updatedUser));
-          emit(AuthSuccess('Profile updated successfully!'));
-        } else {
-          emit(currentState);
-          emit(AuthError('Failed to get updated user data'));
-        }
-      }
-    } catch (e) {
-      emit(AuthError('Update profile failed: $e'));
-    }
-  }
-  
-  Future<void> _onAuthChangeEmail(
-    AuthChangeEmailEvent event, 
-    Emitter<AuthState> emit,
-  ) async {
-    try {
-      final currentState = state;
-      
-      if (currentState is AuthAuthenticated) {
-        emit(AuthLoading());
-        
-        await authRepository.changeEmail(event.newEmail, event.password);
-        
-        final updatedUser = await authRepository.getCurrentUserModel();
-        
-        if (updatedUser != null) {
-          emit(AuthAuthenticated(updatedUser));
-          emit(AuthSuccess('Email updated successfully!'));
-        } else {
-          emit(currentState);
-          emit(AuthError('Failed to get updated user data'));
-        }
-      }
-    } catch (e) {
-      emit(AuthError('Change email failed: $e'));
-    }
-  }
-  
-  Future<void> _onAuthChangePassword(
-    AuthChangePasswordEvent event, 
-    Emitter<AuthState> emit,
-  ) async {
-    try {
-      final currentState = state;
-      
-      emit(AuthLoading());
-      
-      await authRepository.changePassword(
-        event.currentPassword, 
-        event.newPassword,
+      final user = await authRepository.updateProfile(
+        name: event.name,
+        photoUrl: event.photoUrl,
       );
-      
-      emit(currentState);
-      emit(AuthSuccess('Password updated successfully!'));
+      emit(AuthAuthenticated(
+        userId: user.uid,
+        email: user.email ?? '',
+        name: user.displayName,
+        photoUrl: user.photoURL,
+      ));
     } catch (e) {
-      emit(AuthError('Change password failed: $e'));
+      emit(AuthError(e.toString()));
     }
   }
-  
-  Future<void> _onAuthDeleteAccount(
-    AuthDeleteAccountEvent event, 
+
+  Future<void> _onAuthChangeEmail(
+    AuthChangeEmailEvent event,
     Emitter<AuthState> emit,
   ) async {
+    emit(AuthLoading());
     try {
-      emit(AuthLoading());
-      
+      final user = await authRepository.changeEmail(
+        newEmail: event.newEmail,
+        password: event.password,
+      );
+      emit(AuthAuthenticated(
+        userId: user.uid,
+        email: user.email ?? '',
+        name: user.displayName,
+        photoUrl: user.photoURL,
+      ));
+    } catch (e) {
+      emit(AuthError(e.toString()));
+    }
+  }
+
+  Future<void> _onAuthChangePassword(
+    AuthChangePasswordEvent event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(AuthLoading());
+    try {
+      final user = await authRepository.changePassword(
+        currentPassword: event.currentPassword,
+        newPassword: event.newPassword,
+      );
+      emit(AuthAuthenticated(
+        userId: user.uid,
+        email: user.email ?? '',
+        name: user.displayName,
+        photoUrl: user.photoURL,
+      ));
+    } catch (e) {
+      emit(AuthError(e.toString()));
+    }
+  }
+
+  Future<void> _onAuthDeleteAccount(
+    AuthDeleteAccountEvent event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(AuthLoading());
+    try {
       await authRepository.deleteAccount(event.password);
-      
       emit(AuthUnauthenticated());
     } catch (e) {
-      emit(AuthError('Delete account failed: $e'));
+      emit(AuthError(e.toString()));
     }
   }
-  
+
   @override
   Future<void> close() {
-    _authSubscription?.cancel();
     return super.close();
   }
 }

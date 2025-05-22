@@ -87,120 +87,97 @@ class HomeRepositoryImpl implements HomeRepository {
   @override
   Future<List<Map<String, dynamic>>> getSuggestedTasks() async {
     try {
-      // Get all tasks
-      final allTasks = _localStorageService.getAllItems(AppConstants.tasksBox);
+      final userId = _firebaseService.auth.currentUser?.uid;
+      print('Fetching tasks for user: $userId');
       
-      // Filter tasks for today and upcoming with close deadlines
-      final today = DateTime.now();
-      final todayStart = DateTimeUtils.startOfDay(today);
-      final todayEnd = DateTimeUtils.endOfDay(today);
-      
-      // Filter tasks due today
-      final dueTodayTasks = allTasks.where((task) {
-        if (task['dueDate'] == null) return false;
-        
-        final dueDate = DateTime.parse(task['dueDate'] as String);
-        return dueDate.isAfter(todayStart) && dueDate.isBefore(todayEnd);
+      if (userId == null) {
+        print('No user ID found, returning empty list');
+        return [];
+      }
+
+      // Get tasks from Firestore
+      final tasksSnapshot = await _firebaseService.firestore
+          .collection('users')
+          .doc(userId)
+          .collection('tasks')
+          .where('isCompleted', isEqualTo: false)
+          .orderBy('dueDate')
+          .limit(5)
+          .get();
+
+      print('Found ${tasksSnapshot.docs.length} tasks');
+
+      final tasks = tasksSnapshot.docs.map((doc) {
+        final data = doc.data();
+        data['id'] = doc.id;
+        return data;
       }).toList();
-      
-      // Filter important but not urgent tasks
-      final importantTasks = allTasks.where((task) {
-        if (task['isCompleted'] == true) return false;
-        if (task['priority'] != 'high') return false;
-        
-        return true;
-      }).toList();
-      
-      // Combine and sort tasks
-      final suggestedTasks = [...dueTodayTasks, ...importantTasks];
-      
-      // Sort by due date and priority
-      suggestedTasks.sort((a, b) {
-        // First by completion status
-        final aCompleted = a['isCompleted'] as bool? ?? false;
-        final bCompleted = b['isCompleted'] as bool? ?? false;
-        if (aCompleted != bCompleted) {
-          return aCompleted ? 1 : -1;
-        }
-        
-        // Then by priority
-        final aPriority = a['priority'] as String? ?? 'medium';
-        final bPriority = b['priority'] as String? ?? 'medium';
-        
-        final aPriorityValue = aPriority == 'high' ? 3 : (aPriority == 'medium' ? 2 : 1);
-        final bPriorityValue = bPriority == 'high' ? 3 : (bPriority == 'medium' ? 2 : 1);
-        
-        if (aPriorityValue != bPriorityValue) {
-          return bPriorityValue - aPriorityValue;
-        }
-        
-        // Finally by due date
-        final aDueDate = a['dueDate'] != null ? DateTime.parse(a['dueDate'] as String) : null;
-        final bDueDate = b['dueDate'] != null ? DateTime.parse(b['dueDate'] as String) : null;
-        
-        if (aDueDate != null && bDueDate != null) {
-          return aDueDate.compareTo(bDueDate);
-        } else if (aDueDate != null) {
-          return -1;
-        } else if (bDueDate != null) {
-          return 1;
-        }
-        
-        return 0;
-      });
-      
-      // Limit to 5 tasks
-      return suggestedTasks.take(5).toList();
+
+      // Save to local storage for offline access
+      for (final task in tasks) {
+        await _localStorageService.saveItem(
+          AppConstants.tasksBox,
+          task['id'] as String,
+          task,
+        );
+      }
+
+      return tasks;
     } catch (e) {
       print('Error getting suggested tasks: $e');
-      return [];
+      // Fallback to local storage
+      final localTasks = _localStorageService.getAllItems(AppConstants.tasksBox);
+      print('Falling back to ${localTasks.length} local tasks');
+      return localTasks;
     }
   }
   
   @override
   Future<List<Map<String, dynamic>>> getTopGoals() async {
     try {
-      // Get all goals
-      final allGoals = _localStorageService.getAllItems(AppConstants.goalsBox);
+      final userId = _firebaseService.auth.currentUser?.uid;
+      print('Fetching goals for user: $userId');
       
-      // Filter active goals (not completed)
-      final activeGoals = allGoals.where((goal) {
-        return goal['isCompleted'] != true;
+      if (userId == null) {
+        print('No user ID found, returning empty list');
+        return [];
+      }
+
+      // Get goals from Firestore
+      final goalsSnapshot = await _firebaseService.firestore
+          .collection('users')
+          .doc(userId)
+          .collection('goals')
+          .where('isCompleted', isEqualTo: false)
+          .orderBy('priority')
+          .orderBy('deadline')
+          .limit(3)
+          .get();
+
+      print('Found ${goalsSnapshot.docs.length} goals');
+
+      final goals = goalsSnapshot.docs.map((doc) {
+        final data = doc.data();
+        data['id'] = doc.id;
+        return data;
       }).toList();
-      
-      // Sort by priority and then by deadline
-      activeGoals.sort((a, b) {
-        // First by priority
-        final aPriority = a['priority'] as String? ?? 'medium';
-        final bPriority = b['priority'] as String? ?? 'medium';
-        
-        final aPriorityValue = aPriority == 'high' ? 3 : (aPriority == 'medium' ? 2 : 1);
-        final bPriorityValue = bPriority == 'high' ? 3 : (bPriority == 'medium' ? 2 : 1);
-        
-        if (aPriorityValue != bPriorityValue) {
-          return bPriorityValue - aPriorityValue;
-        }
-        
-        // Then by deadline
-        final aDeadline = a['deadline'] != null ? DateTime.parse(a['deadline'] as String) : null;
-        final bDeadline = b['deadline'] != null ? DateTime.parse(b['deadline'] as String) : null;
-        
-        if (aDeadline != null && bDeadline != null) {
-          return aDeadline.compareTo(bDeadline);
-        } else if (aDeadline != null) {
-          return -1;
-        } else if (bDeadline != null) {
-          return 1;
-        }
-        
-        return 0;
-      });
-      
-      // Limit to 3 goals
-      return activeGoals.take(3).toList();
+
+      // Save to local storage for offline access
+      for (final goal in goals) {
+        await _localStorageService.saveItem(
+          AppConstants.goalsBox,
+          goal['id'] as String,
+          goal,
+        );
+      }
+
+      return goals;
     } catch (e) {
       print('Error getting top goals: $e');
-      return [];
+      // Fallback to local storage
+      final localGoals = _localStorageService.getAllItems(AppConstants.goalsBox);
+      print('Falling back to ${localGoals.length} local goals');
+      return localGoals;
     }
   }
   

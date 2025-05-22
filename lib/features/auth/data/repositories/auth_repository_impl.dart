@@ -116,7 +116,11 @@ class AuthRepositoryImpl implements AuthRepository {
   }
   
   @override
-  Future<UserModel> login({required String email, required String password}) async {
+  Future<UserModel> login({
+    required String email, 
+    required String password,
+    bool rememberMe = true,
+  }) async {
     try {
       // Sign in with Firebase Auth
       final userCredential = await _firebaseService.auth.signInWithEmailAndPassword(
@@ -151,8 +155,12 @@ class AuthRepositoryImpl implements AuthRepository {
       // Create user model
       final userModel = UserModel.fromFirebase(userData);
       
-      // Save to local storage
-      await _localStorageService.saveUser(userModel.toJson());
+      // Save to local storage if remember me is enabled
+      if (rememberMe) {
+        await _localStorageService.saveUser(userModel.toJson());
+      } else {
+        await _localStorageService.clearAllData();
+      }
       
       return userModel;
     } catch (e) {

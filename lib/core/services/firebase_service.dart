@@ -1,27 +1,46 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 
 /// Centralized service for Firebase interactions
 class FirebaseService {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseStorage _storage = FirebaseStorage.instance;
+  final FirebaseAuth auth;
+  final FirebaseFirestore firestore;
 
-  // Auth methods
-  FirebaseAuth get auth => _auth;
-  
-  // Firestore methods
-  FirebaseFirestore get firestore => _firestore;
-  
-  // Storage methods
-  FirebaseStorage get storage => _storage;
-  
+  FirebaseService._({
+    required this.auth,
+    required this.firestore,
+  });
+
+  static FirebaseService? _instance;
+
+  static FirebaseService get instance {
+    if (_instance == null) {
+      throw Exception('FirebaseService not initialized');
+    }
+    return _instance!;
+  }
+
+  static Future<FirebaseService> initialize() async {
+    if (_instance != null) {
+      return _instance!;
+    }
+
+    final auth = FirebaseAuth.instance;
+    final firestore = FirebaseFirestore.instance;
+
+    _instance = FirebaseService._(
+      auth: auth,
+      firestore: firestore,
+    );
+
+    return _instance!;
+  }
+
   // Get current user ID
-  String? get currentUserId => _auth.currentUser?.uid;
+  String? get currentUserId => auth.currentUser?.uid;
   
   // Check if user is authenticated
-  bool get isAuthenticated => _auth.currentUser != null;
+  bool get isAuthenticated => auth.currentUser != null;
   
   // Get user-specific collection reference
   CollectionReference getUserCollection(String collection) {
@@ -29,8 +48,7 @@ class FirebaseService {
     if (userId == null) {
       throw Exception('User not authenticated');
     }
-    
-    return _firestore.collection('users').doc(userId).collection(collection);
+    return firestore.collection('users').doc(userId).collection(collection);
   }
   
   // Get document from a user-specific collection
@@ -82,7 +100,7 @@ class FirebaseService {
   Future<void> performBatchOperation(
     Function(WriteBatch batch) operations,
   ) async {
-    final batch = _firestore.batch();
+    final batch = firestore.batch();
     operations(batch);
     await batch.commit();
   }
@@ -91,6 +109,17 @@ class FirebaseService {
   Future<T> performTransaction<T>(
     Future<T> Function(Transaction transaction) transactionFunction,
   ) {
-    return _firestore.runTransaction(transactionFunction);
+    return firestore.runTransaction(transactionFunction);
+  }
+
+  Future<void> signOut() async {
+    await auth.signOut();
+  }
+
+  Future<void> deleteUser() async {
+    final user = auth.currentUser;
+    if (user != null) {
+      await user.delete();
+    }
   }
 }

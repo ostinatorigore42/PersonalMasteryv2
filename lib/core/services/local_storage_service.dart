@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../constants/app_constants.dart';
+import 'package:shared_preferences.dart';
 
 /// Service for managing local storage with Hive database
 class LocalStorageService {
@@ -15,13 +16,14 @@ class LocalStorageService {
   late Box _goalsBox;
   late Box _syncStatusBox;
   late Box _settingsBox;
-
+  final SharedPreferences _prefs;
+  
   // Private constructor
-  LocalStorageService._();
+  LocalStorageService._(this._prefs);
 
   // Factory constructor for initialization
-  static Future<LocalStorageService> init() async {
-    final service = LocalStorageService._();
+  static Future<LocalStorageService> init(SharedPreferences prefs) async {
+    final service = LocalStorageService._(prefs);
     
     // Open all Hive boxes
     service._userBox = await Hive.openBox(AppConstants.userBox);
@@ -41,16 +43,17 @@ class LocalStorageService {
   
   // User data methods
   Future<void> saveUser(Map<String, dynamic> userData) async {
-    await _userBox.put('currentUser', userData);
+    await _prefs.setString(AppConstants.userKey, json.encode(userData));
   }
   
   Map<String, dynamic>? getUser() {
-    final data = _userBox.get('currentUser');
-    return data != null ? Map<String, dynamic>.from(data) : null;
+    final userJson = _prefs.getString(AppConstants.userKey);
+    if (userJson == null) return null;
+    return json.decode(userJson) as Map<String, dynamic>;
   }
   
-  Future<void> deleteUser() async {
-    await _userBox.delete('currentUser');
+  Future<void> clearUser() async {
+    await _prefs.remove(AppConstants.userKey);
   }
   
   String? getUserId() {
@@ -154,6 +157,7 @@ class LocalStorageService {
   
   // Clear all data (for logout)
   Future<void> clearAllData() async {
+    await _prefs.clear();
     await _userBox.clear();
     await _projectsBox.clear();
     await _tasksBox.clear();
@@ -168,12 +172,32 @@ class LocalStorageService {
   }
   
   // Settings methods
-  Future<void> saveSetting(String key, dynamic value) async {
-    await _settingsBox.put(key, value);
+  Map<String, dynamic>? getSettings() {
+    final settingsJson = _prefs.getString(AppConstants.settingsKey);
+    if (settingsJson == null) return null;
+    return json.decode(settingsJson) as Map<String, dynamic>;
   }
   
-  dynamic getSetting(String key, {dynamic defaultValue}) {
-    return _settingsBox.get(key, defaultValue: defaultValue);
+  Future<void> saveSettings(Map<String, dynamic> settings) async {
+    await _prefs.setString(AppConstants.settingsKey, json.encode(settings));
+  }
+  
+  // Theme methods
+  String? getThemeMode() {
+    return _prefs.getString(AppConstants.themeKey);
+  }
+  
+  Future<void> saveThemeMode(String themeMode) async {
+    await _prefs.setString(AppConstants.themeKey, themeMode);
+  }
+  
+  // Language methods
+  String? getLanguage() {
+    return _prefs.getString(AppConstants.languageKey);
+  }
+  
+  Future<void> saveLanguage(String language) async {
+    await _prefs.setString(AppConstants.languageKey, language);
   }
   
   // Helper method to get the right box

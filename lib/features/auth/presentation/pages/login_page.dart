@@ -19,6 +19,21 @@ class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _rememberMe = true;
+  
+  @override
+  void initState() {
+    super.initState();
+    _loadRememberMePreference();
+  }
+  
+  Future<void> _loadRememberMePreference() async {
+    final authService = context.read<AuthBloc>().authService;
+    final rememberMe = await authService.isRememberMeEnabled();
+    setState(() {
+      _rememberMe = rememberMe;
+    });
+  }
   
   @override
   void dispose() {
@@ -33,6 +48,7 @@ class _LoginPageState extends State<LoginPage> {
         AuthLoginEvent(
           email: _emailController.text.trim(),
           password: _passwordController.text,
+          rememberMe: _rememberMe,
         ),
       );
     }
@@ -151,12 +167,27 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton(
-                          onPressed: _resetPassword,
-                          child: const Text('Forgot Password?'),
-                        ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Checkbox(
+                                value: _rememberMe,
+                                onChanged: (value) {
+                                  setState(() {
+                                    _rememberMe = value ?? true;
+                                  });
+                                },
+                              ),
+                              const Text('Remember me'),
+                            ],
+                          ),
+                          TextButton(
+                            onPressed: _resetPassword,
+                            child: const Text('Forgot Password?'),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 24),
                       state is AuthLoading
