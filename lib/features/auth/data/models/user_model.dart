@@ -111,6 +111,6 @@ class UserModel {
     final now = DateTime.now();
     return DateTime(now.year, now.month, now.day)
         .difference(DateTime(birthDate!.year, birthDate!.month, birthDate!.day))
-        .inDays;
+        .inDays + 1;
   }
 }

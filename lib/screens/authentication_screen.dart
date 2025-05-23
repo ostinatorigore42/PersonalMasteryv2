@@ -99,6 +99,9 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('Authentication'),
+      ),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16.0),
@@ -201,6 +204,22 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> {
                         ? 'Don\'t have an account? Register'
                         : 'Already have an account? Login',
                   ),
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: () async {
+                    try {
+                      await FirebaseAuth.instance.signInAnonymously();
+                      if (context.mounted) {
+                        Navigator.of(context).pushReplacement(
+                          MaterialPageRoute(builder: (context) => const HomePage()),
+                        );
+                      }
+                    } catch (e) {
+                      print('Error signing in anonymously: $e');
+                    }
+                  },
+                  child: const Text('Sign In Anonymously'),
                 ),
               ],
             ),

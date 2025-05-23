@@ -344,133 +344,176 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
 
         return Card(
           margin: const EdgeInsets.only(bottom: 8),
-          child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            leading: Checkbox(
-              value: isCompleted,
-              activeColor: projectColor,
-              onChanged: isArchived
-                  ? null
-                  : (value) {
-                      if (value != null) {
-                        context.read<ProjectBloc>().add(
-                              UpdateTaskEvent(
-                                taskId,
-                                {'isCompleted': value},
-                              ),
-                            );
-                      }
-                    },
-            ),
-            title: Text(
-              title,
-              style: TextStyle(
-                decoration: isCompleted ? TextDecoration.lineThrough : null,
-                color: isCompleted ? Colors.grey : null,
-                fontWeight: isCompleted ? FontWeight.normal : FontWeight.bold,
-              ),
-            ),
-            subtitle: dueDate != null
-                ? Row(
-                    children: [
-                      Icon(
-                        Icons.calendar_today,
-                        size: 12,
-                        color: _isDeadlineSoon(dueDate) && !isCompleted
-                            ? Colors.red
-                            : Colors.grey,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        DateFormat('MMM d, yyyy').format(DateTime.parse(dueDate)),
-                        style: TextStyle(
-                          color: _isDeadlineSoon(dueDate) && !isCompleted
-                              ? Colors.red
-                              : Colors.grey,
-                        ),
-                      ),
-                    ],
-                  )
-                : null,
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 12,
-                  height: 12,
-                  decoration: BoxDecoration(
-                    color: priorityColor,
-                    shape: BoxShape.circle,
+          child: InkWell(
+            onTap: () {
+              print('Task row tapped: navigating to Pomodoro');
+              Navigator.of(context).pushNamed(
+                RouteConstants.pomodoro,
+                arguments: {
+                  'taskId': taskId,
+                  'projectName': project['name'] as String?,
+                  'autostart': false,
+                },
+              );
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                children: [
+                  Checkbox(
+                    value: isCompleted,
+                    activeColor: projectColor,
+                    onChanged: isArchived
+                        ? null
+                        : (value) {
+                            if (value != null) {
+                              context.read<ProjectBloc>().add(
+                                    UpdateTaskEvent(
+                                      taskId,
+                                      {'isCompleted': value},
+                                    ),
+                                  );
+                            } else {
+                               context.read<ProjectBloc>().add(
+                                    UpdateTaskEvent(
+                                      taskId,
+                                      {'isCompleted': false},
+                                    ),
+                                  );
+                            }
+                          },
                   ),
-                ),
-                const SizedBox(width: 8),
-                if (!isArchived)
-                  PopupMenuButton<String>(
-                    icon: const Icon(Icons.more_vert),
-                    onSelected: (value) async {
-                      if (value == 'edit') {
-                        _editTask(context, taskId);
-                      } else if (value == 'delete') {
-                        final confirmed = await showDialog<bool>(
-                          context: context,
-                          builder: (context) => AlertDialog(
-                            title: const Text('Delete Task'),
-                            content: const Text(
-                              'Are you sure you want to delete this task? '
-                              'This action cannot be undone.',
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.of(context).pop(false),
-                                child: const Text('Cancel'),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: TextStyle(
+                            decoration: isCompleted ? TextDecoration.lineThrough : null,
+                            color: isCompleted ? Colors.grey : null,
+                            fontWeight: isCompleted ? FontWeight.normal : FontWeight.bold,
+                          ),
+                        ),
+                        if (dueDate != null) ...[
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.calendar_today,
+                                size: 12,
+                                color: _isDeadlineSoon(dueDate) && !isCompleted
+                                    ? Colors.red
+                                    : Colors.grey,
                               ),
-                              TextButton(
-                                onPressed: () => Navigator.of(context).pop(true),
-                                child: const Text(
-                                  'Delete',
-                                  style: TextStyle(color: Colors.red),
+                              const SizedBox(width: 4),
+                              Text(
+                                DateFormat('MMM d, yyyy').format(DateTime.parse(dueDate)),
+                                style: TextStyle(
+                                  color: _isDeadlineSoon(dueDate) && !isCompleted
+                                      ? Colors.red
+                                      : Colors.grey,
                                 ),
                               ),
                             ],
                           ),
-                        );
-                        
-                        if (confirmed == true) {
-                          context.read<ProjectBloc>().add(DeleteTaskEvent(taskId));
-                        }
-                      }
-                    },
-                    itemBuilder: (context) => [
-                      const PopupMenuItem(
-                        value: 'edit',
-                        child: Row(
-                          children: [
-                            Icon(Icons.edit),
-                            SizedBox(width: 8),
-                            Text('Edit'),
-                          ],
+                        ],
+                      ],
+                    ),
+                  ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 12,
+                        height: 12,
+                        decoration: BoxDecoration(
+                          color: priorityColor,
+                          shape: BoxShape.circle,
                         ),
                       ),
-                      const PopupMenuItem(
-                        value: 'delete',
-                        child: Row(
-                          children: [
-                            Icon(Icons.delete, color: Colors.red),
-                            SizedBox(width: 8),
-                            Text('Delete', style: TextStyle(color: Colors.red)),
+                      const SizedBox(width: 8),
+                      if (!isArchived && !isCompleted)
+                        IconButton(
+                          icon: const Icon(Icons.play_circle_fill),
+                          color: projectColor,
+                          tooltip: 'Start Pomodoro',
+                          onPressed: () {
+                            print('Play button tapped: navigating to Pomodoro with autostart');
+                            Navigator.of(context).pushNamed(
+                              RouteConstants.pomodoro,
+                              arguments: {
+                                'taskId': taskId,
+                                'projectName': project['name'] as String?,
+                                'autostart': true,
+                              },
+                            );
+                          },
+                        ),
+                      if (!isArchived)
+                        PopupMenuButton<String>(
+                          icon: const Icon(Icons.more_vert),
+                          onSelected: (value) async {
+                            if (value == 'edit') {
+                              _editTask(context, taskId);
+                            } else if (value == 'delete') {
+                              final confirmed = await showDialog<bool>(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  title: const Text('Delete Task'),
+                                  content: const Text(
+                                    'Are you sure you want to delete this task? '
+                                    'This action cannot be undone.',
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.of(context).pop(false),
+                                      child: const Text('Cancel'),
+                                    ),
+                                    TextButton(
+                                      onPressed: () => Navigator.of(context).pop(true),
+                                      child: const Text(
+                                        'Delete',
+                                        style: TextStyle(color: Colors.red),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                              
+                              if (confirmed == true) {
+                                context.read<ProjectBloc>().add(DeleteTaskEvent(taskId));
+                              }
+                            }
+                          },
+                          itemBuilder: (context) => [
+                            const PopupMenuItem(
+                              value: 'edit',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.edit),
+                                  SizedBox(width: 8),
+                                  Text('Edit'),
+                                ],
+                              ),
+                            ),
+                            const PopupMenuItem(
+                              value: 'delete',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.delete, color: Colors.red),
+                                  SizedBox(width: 8),
+                                  Text('Delete', style: TextStyle(color: Colors.red)),
+                                ],
+                              ),
+                            ),
                           ],
                         ),
-                      ),
                     ],
                   ),
-              ],
+                ],
+              ),
             ),
-            onTap: () {
-              Navigator.of(context).pushNamed(
-                RouteConstants.taskDetail,
-                arguments: {'taskId': taskId},
-              );
-            },
           ),
         );
       },

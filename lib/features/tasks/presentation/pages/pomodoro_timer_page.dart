@@ -7,12 +7,14 @@ class PomodoroTimerPage extends StatefulWidget {
   final String projectId;
   final String projectName;
   final Task task;
+  final bool autostart;
 
   const PomodoroTimerPage({
     Key? key,
     required this.projectId,
     required this.projectName,
     required this.task,
+    this.autostart = false,
   }) : super(key: key);
 
   @override
@@ -54,6 +56,13 @@ class _PomodoroTimerPageState extends State<PomodoroTimerPage> {
     _completedPomodoros = widget.task.completedPomodoros;
     _totalTaskElapsedTime = widget.task.elapsedTime; // Load total elapsed time
     _firebaseService = FirebaseService.instance;
+
+    // Start timer automatically if autostart is true
+    if (widget.autostart) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _startTimer();
+      });
+    }
 
     print('PomodoroTimerPage initState: task: ${widget.task.title}, initial total elapsed time: ${_totalTaskElapsedTime}, initial completed pomodoros: ${widget.task.completedPomodoros}, workDuration: $_workDuration, shortBreakDuration: $_shortBreakDuration, longBreakDuration: $_longBreakDuration, pomodorosUntilLongBreak: $_pomodorosUntilLongBreak, autoStartBreaks: $_autoStartBreaks, autoStartPomodoros: $_autoStartPomodoros');
   }

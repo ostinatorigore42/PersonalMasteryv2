@@ -20,4 +20,7 @@ abstract class HomeRepository {
   
   /// Get a motivational quote
   Future<String?> getMotivationalQuote();
+  
+  /// Clear the daily focus cache
+  Future<void> clearDailyFocusCache();
 }

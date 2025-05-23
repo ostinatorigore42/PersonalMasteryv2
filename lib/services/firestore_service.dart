@@ -61,6 +61,19 @@ class FirestoreService {
         .update(project.toMap());
   }
 
+  // Get user data
+  Stream<Map<String, dynamic>?> getUserData() {
+    final userId = _auth.currentUser?.uid;
+    if (userId == null) return Stream.value(null);
+
+    return _firestore.collection('users').doc(userId).snapshots().map((snapshot) {
+      if (!snapshot.exists) {
+        return null;
+      }
+      return snapshot.data();
+    });
+  }
+
   // Get all tasks for a specific project
   Stream<List<Task>> getTasks(String projectId) {
     final userId = _auth.currentUser?.uid;

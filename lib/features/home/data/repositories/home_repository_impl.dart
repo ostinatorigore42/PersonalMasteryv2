@@ -59,6 +59,7 @@ class HomeRepositoryImpl implements HomeRepository {
         suggestedTaskIds: suggestedTaskIds,
         yesterdayAverageRating: yesterdayAverageRating,
         motivationalQuotes: motivationalQuote != null ? [motivationalQuote] : null,
+        message: '${greeting}, ${await _getUserName()}. ${ageInDays != null ? 'It is Day ${ageInDays} of your life!' : ''} Make it count!',
       );
       
       // Save to local storage
@@ -254,5 +255,33 @@ class HomeRepositoryImpl implements HomeRepository {
     // Return a random quote
     final random = Random();
     return quotes[random.nextInt(quotes.length)];
+  }
+
+  Future<String> _getUserName() async {
+    final userData = _localStorageService.getUser();
+    if (userData != null) {
+      final user = UserModel.fromJson(userData);
+      return user.displayName ?? user.email.split('@')[0];
+    }
+    final firebaseUser = _firebaseService.auth.currentUser;
+    return firebaseUser?.displayName ?? firebaseUser?.email?.split('@')[0] ?? 'User';
+  }
+
+  @override
+  Future<void> clearDailyFocusCache() async {
+    try {
+      final today = DateTime.now();
+      final dateStr = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+      
+      // Remove the cached daily focus
+      await _localStorageService.removeItem(
+        AppConstants.userBox,
+        'daily_focus_$dateStr',
+      );
+      
+      print('Daily focus cache cleared for $dateStr');
+    } catch (e) {
+      print('Error clearing daily focus cache: $e');
+    }
   }
 }

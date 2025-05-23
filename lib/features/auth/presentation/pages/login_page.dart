@@ -75,6 +75,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey.shade900,
       body: BlocConsumer<AuthBloc, AuthState>(
         listener: (context, state) {
           if (state is AuthError) {
@@ -111,7 +112,7 @@ class _LoginPageState extends State<LoginPage> {
                         style: TextStyle(
                           fontSize: 32,
                           fontWeight: FontWeight.bold,
-                          color: Colors.blue,
+                          color: Colors.black87,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -120,7 +121,7 @@ class _LoginPageState extends State<LoginPage> {
                         'Login to access your second brain',
                         style: TextStyle(
                           fontSize: 16,
-                          color: Colors.grey,
+                          color: Colors.black54,
                         ),
                         textAlign: TextAlign.center,
                       ),

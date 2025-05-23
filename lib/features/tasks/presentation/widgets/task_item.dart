@@ -32,14 +32,26 @@ class TaskItem extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8.0),
       elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8.0),
+        borderRadius: BorderRadius.circular(16.0),
       ),
       color: Colors.grey.shade900, // Dark background color
       child: InkWell(
-        onTap: onEdit, // Assuming tapping the task item opens edit/details
-        borderRadius: BorderRadius.circular(8.0),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => PomodoroTimerPage(
+                projectId: projectId,
+                projectName: projectName,
+                task: task,
+                autostart: false,
+              ),
+            ),
+          );
+        },
+        borderRadius: BorderRadius.circular(16.0),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
           child: Row(
             children: [
               // Checkbox
@@ -120,6 +132,7 @@ class TaskItem extends StatelessWidget {
                         projectId: projectId,
                         projectName: projectName,
                         task: task,
+                        autostart: true,
                       ),
                     ),
                   );

@@ -11,6 +11,7 @@ import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../projects/presentation/bloc/project_bloc.dart';
 import '../../../goals/presentation/bloc/goal_bloc.dart';
 import '../bloc/home_bloc.dart';
+import '../../../projects/presentation/widgets/projects_overview_card.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -23,10 +24,6 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    _loadData();
-  }
-
-  void _loadData() {
     context.read<HomeBloc>().add(LoadHomeDataEvent());
   }
 
@@ -51,35 +48,28 @@ class _HomePageState extends State<HomePage> {
         },
         child: BlocBuilder<HomeBloc, HomeState>(
           builder: (context, state) {
-            if (state is HomeInitial) {
-              return const LoadingIndicator(message: 'Loading your day...');
-            } else if (state is HomeLoading) {
-              return const LoadingIndicator(message: 'Loading your day...');
-            } else if (state is HomeLoaded) {
-              return _buildHomeContent(state);
-            } else if (state is HomeError) {
-              return Center(
+            if (state is HomeLoading) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            if (state is HomeError) {
+              return Center(child: Text('Error: ${state.message}'));
+            }
+
+            if (state is HomeLoaded) {
+              return SingleChildScrollView(
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Error: ${state.message}',
-                      style: const TextStyle(color: Colors.red),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 16),
-                    CustomButton(
-                      text: 'Try Again',
-                      onPressed: _loadData,
-                    ),
+                    _buildDailyFocus(state.dailyFocus),
+                    _buildProjectsList(state.projects),
+                    _buildGoalsList(state.goals),
                   ],
                 ),
               );
-            } else {
-              return const Center(
-                child: Text('Something went wrong'),
-              );
             }
+
+            return const Center(child: Text('No data available'));
           },
         ),
       ),
@@ -213,69 +203,58 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildHomeContent(HomeLoaded state) {
-    return ListView(
-      padding: const EdgeInsets.all(16.0),
-      children: [
-        _buildGreetingSection(state.dailyFocus),
-        const SizedBox(height: 24),
-        _buildTodaysFocus(state.topGoals),
-        const SizedBox(height: 16),
-        _buildSuggestedTasks(state.suggestedTasks),
-        const SizedBox(height: 24),
-        _buildDailyQuote(state.dailyFocus),
-        if (state.isOffline)
-          Padding(
-            padding: const EdgeInsets.only(top: 16.0),
-            child: Container(
-              padding: const EdgeInsets.all(8.0),
-              decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(8.0),
-              ),
-              child: const Row(
-                children: [
-                  Icon(Icons.wifi_off, color: Colors.orange),
-                  SizedBox(width: 8.0),
-                  Text(
-                    'You are offline. Data will be synced when online.',
-                    style: TextStyle(color: Colors.orange),
-                  ),
-                ],
-              ),
-            ),
+  Widget _buildDailyFocus(Map<String, dynamic> dailyFocus) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            dailyFocus['greeting'] ?? 'Hello',
+            style: Theme.of(context).textTheme.headlineMedium,
           ),
-      ],
+          const SizedBox(height: 8),
+          Text(
+            dailyFocus['message'] ?? 'Make it count!',
+            style: Theme.of(context).textTheme.bodyLarge,
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildGreetingSection(Map<String, dynamic> dailyFocus) {
-    return BlocBuilder<AuthBloc, AuthState>(
-      builder: (context, state) {
-        if (state is AuthAuthenticated) {
-          final userName = state.name ?? state.email.split('@')[0];
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Welcome back, $userName!',
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                dailyFocus['message'] as String? ?? 'Have a productive day!',
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey,
-                ),
-              ),
-            ],
-          );
-        }
-        return const SizedBox.shrink();
+  Widget _buildProjectsList(List<Map<String, dynamic>> projects) {
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: projects.length,
+      itemBuilder: (context, index) {
+        final project = projects[index];
+        return ListTile(
+          title: Text(project['title'] ?? ''),
+          subtitle: Text(project['description'] ?? ''),
+          onTap: () {
+            // Navigate to project details
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildGoalsList(List<Map<String, dynamic>> goals) {
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: goals.length,
+      itemBuilder: (context, index) {
+        final goal = goals[index];
+        return ListTile(
+          title: Text(goal['title'] ?? ''),
+          subtitle: Text(goal['description'] ?? ''),
+          onTap: () {
+            context.read<GoalBloc>().add(LoadGoalDetailsEvent(goal['id'] as String));
+          },
+        );
       },
     );
   }

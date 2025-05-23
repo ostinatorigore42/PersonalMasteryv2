@@ -5,6 +5,7 @@ import '../services/firestore_service.dart';
 import '../widgets/project_item_card.dart';
 import '../features/projects/presentation/widgets/projects_overview_card.dart';
 import 'authentication_screen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -33,11 +34,21 @@ class HomePage extends StatelessWidget {
     }
   }
 
+  // Function to calculate days since birthday
+  String _getDaysSinceBirthday(DateTime? birthday) {
+    if (birthday == null) return '';
+
+    final now = DateTime.now();
+    final daysSince = now.difference(birthday).inDays;
+    
+    // Return just the number of days
+    return daysSince.toString();
+  }
+
   @override
   Widget build(BuildContext context) {
     final FirestoreService _firestoreService = FirestoreService();
     final User? user = FirebaseAuth.instance.currentUser;
-    final String userName = user?.displayName ?? user?.email?.split('@')[0] ?? 'User';
     final String greeting = _getTimeOfDayGreeting();
 
     return Scaffold(
@@ -151,12 +162,33 @@ class HomePage extends StatelessWidget {
           children: [
             Padding(
               padding: const EdgeInsets.all(16.0),
-              child: Text(
-                '$greeting, $userName.',
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
+              child: StreamBuilder<Map<String, dynamic>?>( // Use StreamBuilder for user data
+                stream: _firestoreService.getUserData(),
+                builder: (context, snapshot) {
+                  String userName = user?.email?.split('@')[0] ?? 'User';
+                  DateTime? birthday;
+                  String birthdayMessage = '';
+
+                  if (snapshot.hasData && snapshot.data != null) {
+                    final userData = snapshot.data!;
+                    userName = userData['name'] ?? userName; // Use name from data if available
+                    if (userData['birthday'] is Timestamp) {
+                      birthday = (userData['birthday'] as Timestamp).toDate();
+                      final days = _getDaysSinceBirthday(birthday);
+                      if (days.isNotEmpty) {
+                        birthdayMessage = 'It is Day $days of your life.';
+                      }
+                    }
+                  }
+
+                  return Text(
+                    '$greeting, $userName. $birthdayMessage',
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  );
+                },
               ),
             ),
             ProjectsOverviewCard(),

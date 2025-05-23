@@ -30,8 +30,8 @@ class ProjectModel {
       'name': name,
       'description': description,
       'color': color,
-      'createdAt': createdAt,
-      'updatedAt': updatedAt,
+      'createdAt': Timestamp.fromDate(createdAt),
+      'updatedAt': Timestamp.fromDate(updatedAt),
       'isArchived': isArchived,
       'taskIds': taskIds,
       'parentId': parentId,
@@ -40,13 +40,39 @@ class ProjectModel {
   
   // Create from Firebase data
   factory ProjectModel.fromFirebase(String id, Map<String, dynamic> data) {
+    // Safely handle createdAt which could be Timestamp or String
+    DateTime createdAtDate;
+    final createdAtData = data['createdAt'];
+    if (createdAtData is Timestamp) {
+      createdAtDate = createdAtData.toDate();
+    } else if (createdAtData is String) {
+      createdAtDate = DateTime.parse(createdAtData);
+    } else {
+      // Fallback to current date or throw error if createdAt is crucial
+      createdAtDate = DateTime.now();
+      print('Warning: Invalid createdAt type in Firebase for document $id in ProjectModel. Using current date.');
+    }
+
+    // Safely handle updatedAt which could be Timestamp or String
+    DateTime updatedAtDate;
+    final updatedAtData = data['updatedAt'];
+    if (updatedAtData is Timestamp) {
+      updatedAtDate = updatedAtData.toDate();
+    } else if (updatedAtData is String) {
+      updatedAtDate = DateTime.parse(updatedAtData);
+    } else {
+      // Fallback to current date or throw error if updatedAt is crucial
+      updatedAtDate = DateTime.now();
+      print('Warning: Invalid updatedAt type in Firebase for document $id in ProjectModel. Using current date.');
+    }
+
     return ProjectModel(
       id: id,
       name: data['name'] as String,
       description: data['description'] as String?,
       color: data['color'] as String,
-      createdAt: (data['createdAt'] as dynamic).toDate(),
-      updatedAt: (data['updatedAt'] as dynamic).toDate(),
+      createdAt: createdAtDate,
+      updatedAt: updatedAtDate,
       isArchived: data['isArchived'] as bool? ?? false,
       taskIds: data['taskIds'] != null ? List<String>.from(data['taskIds']) : null,
       parentId: data['parentId'] as String?,

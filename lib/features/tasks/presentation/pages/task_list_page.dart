@@ -155,7 +155,16 @@ class _TaskListPageState extends State<TaskListPage> {
               ),
               child: Row(
                 children: [
-                  Icon(Icons.add, color: Colors.grey.shade600),
+                  Container(
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Padding(
+                      padding: EdgeInsets.all(4.0), // Adjust padding as needed
+                      child: Icon(Icons.add, color: Colors.black, size: 24.0),
+                    ),
+                  ),
                   const SizedBox(width: 16),
                   Text(
                     'Add a task...',
