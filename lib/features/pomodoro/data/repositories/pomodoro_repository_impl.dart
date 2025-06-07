@@ -1,5 +1,6 @@
 import 'package:uuid/uuid.dart';
-
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/services/firebase_service.dart';
 import '../../../../core/services/local_storage_service.dart';
@@ -15,6 +16,8 @@ class PomodoroRepositoryImpl implements PomodoroRepository {
   final SyncService _syncService;
   final ProjectRepositoryImpl _projectRepository;
   final Uuid _uuid = const Uuid();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
   
   PomodoroRepositoryImpl(
     this._firebaseService,
@@ -23,16 +26,24 @@ class PomodoroRepositoryImpl implements PomodoroRepository {
     this._projectRepository,
   );
   
+  String get _userId => _auth.currentUser?.uid ?? '';
+  
   @override
   Future<List<Map<String, dynamic>>> getPomodoroSessions({String? taskId}) async {
     try {
-      final sessions = _localStorageService.getAllItems(AppConstants.pomodoroSessionsBox);
-      
+      if (_userId.isEmpty) return [];
+
+      Query query = _firestore
+          .collection('users')
+          .doc(_userId)
+          .collection('pomodoroSessions');
+
       if (taskId != null) {
-        return sessions.where((session) => session['taskId'] == taskId).toList();
+        query = query.where('taskId', isEqualTo: taskId);
       }
-      
-      return sessions;
+
+      final querySnapshot = await query.get();
+      return querySnapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
     } catch (e) {
       print('Error getting pomodoro sessions: $e');
       return [];
@@ -42,7 +53,16 @@ class PomodoroRepositoryImpl implements PomodoroRepository {
   @override
   Future<Map<String, dynamic>?> getPomodoroSession(String sessionId) async {
     try {
-      return _localStorageService.getItem(AppConstants.pomodoroSessionsBox, sessionId);
+      if (_userId.isEmpty) return null;
+
+      final doc = await _firestore
+          .collection('users')
+          .doc(_userId)
+          .collection('pomodoroSessions')
+          .doc(sessionId)
+          .get();
+
+      return doc.data();
     } catch (e) {
       print('Error getting pomodoro session: $e');
       return null;
@@ -55,15 +75,39 @@ class PomodoroRepositoryImpl implements PomodoroRepository {
     required int durationMinutes,
     String? projectId,
   }) async {
+    print('DEBUG: ENTERED startPomodoroSession');
     try {
+      if (_userId.isEmpty) throw Exception('User not authenticated');
+
       final now = DateTime.now();
       final sessionId = _uuid.v4();
+      print('DEBUG: startPomodoroSession _userId=$_userId, sessionId=$sessionId');
+      print('DEBUG: Firestore instance: $_firestore');
+      print('DEBUG: Auth instance: $_auth');
+      print('DEBUG: Current user: ${_auth.currentUser?.uid}');
       
       // If no project ID provided, try to get it from the task
       if (projectId == null) {
         final task = await _projectRepository.getTask(taskId);
         if (task != null) {
           projectId = task['projectId'] as String?;
+          print('DEBUG: Got projectId from task: $projectId');
+        }
+      }
+      
+      // Fetch task and project details for session metadata
+      String taskTitle = 'Unknown Task';
+      String projectTitle = 'Unknown Project';
+      String projectColor = '#2196F3';
+      final task = await _projectRepository.getTask(taskId);
+      if (task != null) {
+        taskTitle = task['title'] as String? ?? taskTitle;
+        if (task['projectId'] != null) {
+          final project = await _projectRepository.getProject(task['projectId'] as String);
+          if (project != null) {
+            projectTitle = project['name'] as String? ?? projectTitle;
+            projectColor = project['color'] as String? ?? projectColor;
+          }
         }
       }
       
@@ -77,20 +121,42 @@ class PomodoroRepositoryImpl implements PomodoroRepository {
         durationMinutes: durationMinutes,
         projectId: projectId,
       );
+      final sessionData = sessionModel.toFirebase();
+      sessionData['taskTitle'] = taskTitle;
+      sessionData['projectTitle'] = projectTitle;
+      sessionData['projectColor'] = projectColor;
       
-      // Save to local storage
-      await _localStorageService.saveItem(
-        AppConstants.pomodoroSessionsBox,
-        sessionId,
-        sessionModel.toJson(),
-      );
-      
-      // Trigger sync
-      _syncService.sync();
-      
+      // REMOVE TEST WRITES
+      // Only keep the real session write
+      print('DEBUG: Writing session to users/$_userId/pomodoroSessions with data: $sessionData');
+      await _firestore
+          .collection('users')
+          .doc(_userId)
+          .collection('pomodoroSessions')
+          .doc(sessionId)
+          .set(sessionData)
+          .then((_) => print('DEBUG: Wrote session to users/$_userId/pomodoroSessions/$sessionId'))
+          .catchError((e) => print('ERROR: Failed to write session: $e'));
+
+      // Dual write: legacy subcollection under task
+      if (projectId != null) {
+        final legacyPath = 'users/$_userId/projects/$projectId/tasks/$taskId/sessions/$sessionId';
+        await _firestore
+            .collection('users')
+            .doc(_userId)
+            .collection('projects')
+            .doc(projectId)
+            .collection('tasks')
+            .doc(taskId)
+            .collection('sessions')
+            .doc(sessionId)
+            .set(sessionData)
+            .then((_) => print('DEBUG: Wrote session to $legacyPath'))
+            .catchError((e) => print('ERROR: Failed to write session to $legacyPath: $e'));
+      }
       return sessionId;
-    } catch (e) {
-      print('Error starting pomodoro session: $e');
+    } catch (e, stack) {
+      print('ERROR in startPomodoroSession: $e\n$stack');
       throw Exception('Failed to start pomodoro session: $e');
     }
   }
@@ -102,6 +168,8 @@ class PomodoroRepositoryImpl implements PomodoroRepository {
     Map<String, dynamic>? notes,
   }) async {
     try {
+      if (_userId.isEmpty) throw Exception('User not authenticated');
+
       // Get current session data
       final sessionData = await getPomodoroSession(sessionId);
       if (sessionData == null) {
@@ -111,14 +179,14 @@ class PomodoroRepositoryImpl implements PomodoroRepository {
       // Update session
       final now = DateTime.now();
       final updates = {
-        'endTime': now.toIso8601String(),
+        'endTime': now,
         'isCompleted': true,
         'rating': rating,
         'notes': notes,
       };
       
       // Calculate actual duration
-      final startTime = DateTime.parse(sessionData['startTime'] as String);
+      final startTime = (sessionData['startTime'] as Timestamp).toDate();
       final actualDurationMinutes = now.difference(startTime).inMinutes;
       
       // Update duration if it's different from planned
@@ -126,48 +194,52 @@ class PomodoroRepositoryImpl implements PomodoroRepository {
         updates['durationMinutes'] = actualDurationMinutes;
       }
       
-      final updatedData = {
-        ...sessionData,
-        ...updates,
-      };
-      
-      // Save to local storage
-      await _localStorageService.saveItem(
-        AppConstants.pomodoroSessionsBox,
-        sessionId,
-        updatedData,
-      );
-      
-      // Update task with completed pomodoro
+      // Update in Firestore (flat collection)
+      final flatPath = 'users/$_userId/pomodoroSessions/$sessionId';
+      await _firestore
+          .collection('users')
+          .doc(_userId)
+          .collection('pomodoroSessions')
+          .doc(sessionId)
+          .update(updates);
+      print('DEBUG: Updated session in $flatPath');
+      // Update in Firestore (legacy subcollection)
       final taskId = sessionData['taskId'] as String;
+      final projectId = sessionData['projectId'] as String?;
+      if (projectId != null) {
+        final legacyPath = 'users/$_userId/projects/$projectId/tasks/$taskId/sessions/$sessionId';
+        await _firestore
+            .collection('users')
+            .doc(_userId)
+            .collection('projects')
+            .doc(projectId)
+            .collection('tasks')
+            .doc(taskId)
+            .collection('sessions')
+            .doc(sessionId)
+            .update(updates);
+        print('DEBUG: Updated session in $legacyPath');
+      }
+      // Update task with completed pomodoro
       final task = await _projectRepository.getTask(taskId);
       if (task != null) {
         // Add session ID to task's pomodoro sessions list
-        final pomodoroSessionIds = task['pomodoroSessionIds'] != null
-            ? List<String>.from(task['pomodoroSessionIds'] as List)
-            : <String>[];
+        final pomodoroSessionIds = (task['pomodoroSessionIds'] as List<dynamic>?)?.cast<String>() ?? [];
         
         if (!pomodoroSessionIds.contains(sessionId)) {
-          pomodoroSessionIds.add(sessionId);
-          
-          // Increment completed pomodoros count
-          final completedPomodoros = (task['completedPomodoros'] as int?) ?? 0;
-          
           await _projectRepository.updateTask(
             taskId,
             {
-              'pomodoroSessionIds': pomodoroSessionIds,
-              'completedPomodoros': completedPomodoros + 1,
-              'updatedAt': now.toIso8601String(),
+              'pomodoroSessionIds': [...pomodoroSessionIds, sessionId],
+              'completedPomodoros': (task['completedPomodoros'] as int? ?? 0) + 1,
+              'updatedAt': now,
             },
           );
+          print('DEBUG: Updated task $taskId with new session $sessionId');
         }
       }
-      
-      // Trigger sync
-      _syncService.sync();
-    } catch (e) {
-      print('Error completing pomodoro session: $e');
+    } catch (e, stack) {
+      print('ERROR in completePomodoroSession: $e\n$stack');
       throw Exception('Failed to complete pomodoro session: $e');
     }
   }
@@ -175,11 +247,15 @@ class PomodoroRepositoryImpl implements PomodoroRepository {
   @override
   Future<void> cancelPomodoroSession(String sessionId) async {
     try {
-      // Delete session from local storage
-      await _localStorageService.deleteItem(AppConstants.pomodoroSessionsBox, sessionId);
-      
-      // Trigger sync
-      _syncService.sync();
+      if (_userId.isEmpty) throw Exception('User not authenticated');
+
+      // Delete session from Firestore
+      await _firestore
+          .collection('users')
+          .doc(_userId)
+          .collection('pomodoroSessions')
+          .doc(sessionId)
+          .delete();
     } catch (e) {
       print('Error canceling pomodoro session: $e');
       throw Exception('Failed to cancel pomodoro session: $e');
@@ -193,7 +269,7 @@ class PomodoroRepositoryImpl implements PomodoroRepository {
       final dayEnd = DateTimeUtils.endOfDay(date);
       
       // Get all completed sessions
-      final sessions = _localStorageService.getAllItems(AppConstants.pomodoroSessionsBox);
+      final sessions = await getPomodoroSessions();
       
       // Filter sessions for the specified day
       final daySessions = sessions.where((session) {
@@ -222,7 +298,7 @@ class PomodoroRepositoryImpl implements PomodoroRepository {
       final weekEnd = weekStart.add(const Duration(days: 7));
       
       // Get all completed sessions
-      final sessions = _localStorageService.getAllItems(AppConstants.pomodoroSessionsBox);
+      final sessions = await getPomodoroSessions();
       
       // Filter sessions for the specified week
       final weekSessions = sessions.where((session) {
@@ -252,7 +328,7 @@ class PomodoroRepositoryImpl implements PomodoroRepository {
       final dayEnd = DateTimeUtils.endOfDay(date);
       
       // Get all completed sessions
-      final sessions = _localStorageService.getAllItems(AppConstants.pomodoroSessionsBox);
+      final sessions = await getPomodoroSessions();
       
       // Filter sessions for the specified day
       final daySessions = sessions.where((session) {
@@ -284,16 +360,20 @@ class PomodoroRepositoryImpl implements PomodoroRepository {
     required DateTime endDate,
   }) async {
     try {
-      // Get all completed sessions
-      final sessions = _localStorageService.getAllItems(AppConstants.pomodoroSessionsBox);
-      
-      // Filter sessions for the specified date range
-      return sessions.where((session) {
-        if (session['isCompleted'] != true) return false;
-        
-        final endTime = DateTime.parse(session['endTime'] as String);
-        return endTime.isAfter(startDate) && endTime.isBefore(endDate);
-      }).toList();
+      if (_userId.isEmpty) return [];
+
+      // NOTE: If you filter/sort on multiple fields, Firestore may require a composite index.
+      // This query fetches ALL sessions in the date range, regardless of isCompleted.
+      final querySnapshot = await _firestore
+          .collection('users')
+          .doc(_userId)
+          .collection('pomodoroSessions')
+          .where('endTime', isGreaterThanOrEqualTo: startDate)
+          .where('endTime', isLessThanOrEqualTo: endDate)
+          .orderBy('endTime')
+          .get();
+
+      return querySnapshot.docs.map((doc) => doc.data()).toList();
     } catch (e) {
       print('Error getting pomodoro sessions for date range: $e');
       return [];
@@ -303,11 +383,17 @@ class PomodoroRepositoryImpl implements PomodoroRepository {
   @override
   Future<int> getPomodoroSessionsCountByTask(String taskId) async {
     try {
-      // Get sessions for the specified task
-      final sessions = await getPomodoroSessions(taskId: taskId);
-      
-      // Count only completed sessions
-      return sessions.where((session) => session['isCompleted'] == true).length;
+      if (_userId.isEmpty) return 0;
+
+      final querySnapshot = await _firestore
+          .collection('users')
+          .doc(_userId)
+          .collection('pomodoroSessions')
+          .where('taskId', isEqualTo: taskId)
+          .where('isCompleted', isEqualTo: true)
+          .get();
+
+      return querySnapshot.docs.length;
     } catch (e) {
       print('Error getting pomodoro sessions count by task: $e');
       return 0;
@@ -317,17 +403,18 @@ class PomodoroRepositoryImpl implements PomodoroRepository {
   @override
   Future<Map<String, dynamic>?> getOngoingPomodoroSession() async {
     try {
-      // Get all sessions
-      final sessions = _localStorageService.getAllItems(AppConstants.pomodoroSessionsBox);
-      
-      // Find the first incomplete session
-      for (final session in sessions) {
-        if (session['isCompleted'] != true) {
-          return session;
-        }
-      }
-      
-      return null;
+      if (_userId.isEmpty) return null;
+
+      final querySnapshot = await _firestore
+          .collection('users')
+          .doc(_userId)
+          .collection('pomodoroSessions')
+          .where('isCompleted', isEqualTo: false)
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isEmpty) return null;
+      return querySnapshot.docs.first.data();
     } catch (e) {
       print('Error getting ongoing pomodoro session: $e');
       return null;
@@ -337,45 +424,33 @@ class PomodoroRepositoryImpl implements PomodoroRepository {
   @override
   Future<Map<String, dynamic>> getPomodoroSettings() async {
     try {
-      final settings = _localStorageService.getItem(
-        AppConstants.settingsBox,
-        'pomodoroSettings',
-      );
-      
-      if (settings != null) {
-        return settings;
-      }
-      
-      // Return default settings
-      return {
-        'pomodoroMinutes': AppConstants.defaultPomodoroMinutes,
-        'shortBreakMinutes': AppConstants.defaultShortBreakMinutes,
-        'longBreakMinutes': AppConstants.defaultLongBreakMinutes,
-        'pomodorosBeforeLongBreak': AppConstants.defaultPomodorosBeforeLongBreak,
-        'autoStartNextSession': false,
-      };
+      if (_userId.isEmpty) return {};
+
+      final doc = await _firestore
+          .collection('users')
+          .doc(_userId)
+          .collection('settings')
+          .doc('pomodoro')
+          .get();
+
+      return doc.data() ?? {};
     } catch (e) {
       print('Error getting pomodoro settings: $e');
-      
-      // Return default settings
-      return {
-        'pomodoroMinutes': AppConstants.defaultPomodoroMinutes,
-        'shortBreakMinutes': AppConstants.defaultShortBreakMinutes,
-        'longBreakMinutes': AppConstants.defaultLongBreakMinutes,
-        'pomodorosBeforeLongBreak': AppConstants.defaultPomodorosBeforeLongBreak,
-        'autoStartNextSession': false,
-      };
+      return {};
     }
   }
   
   @override
   Future<void> savePomodoroSettings(Map<String, dynamic> settings) async {
     try {
-      await _localStorageService.saveItem(
-        AppConstants.settingsBox,
-        'pomodoroSettings',
-        settings,
-      );
+      if (_userId.isEmpty) throw Exception('User not authenticated');
+
+      await _firestore
+          .collection('users')
+          .doc(_userId)
+          .collection('settings')
+          .doc('pomodoro')
+          .set(settings);
     } catch (e) {
       print('Error saving pomodoro settings: $e');
       throw Exception('Failed to save pomodoro settings: $e');

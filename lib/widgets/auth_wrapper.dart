@@ -48,23 +48,23 @@ class AuthWrapper extends StatelessWidget {
               .collection('users')
               .doc(snapshot.data!.uid)
               .snapshots(),
-          builder: (context, userDocSnapshot) {
-            if (userDocSnapshot.connectionState == ConnectionState.waiting) {
-              return const Scaffold(
-                body: Center(
-                  child: CircularProgressIndicator(),
-                ),
-              );
-            }
+            builder: (context, userDocSnapshot) {
+              if (userDocSnapshot.connectionState == ConnectionState.waiting) {
+                return const Scaffold(
+                  body: Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                );
+              }
 
             if (!userDocSnapshot.hasData) {
               return const AuthenticationScreen();
             }
 
-            // Pass the user data to the HomePage
+                // Pass the user data to the HomePage
             return const HomePage();
-          },
-        );
+            },
+          );
       },
     );
   }

@@ -73,14 +73,7 @@ class _HomePageState extends State<HomePage> {
           },
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // Navigate to task creation page
-          context.read<ProjectBloc>().add(LoadProjectsEvent());
-          Navigator.of(context).pushNamed(RouteConstants.projectList);
-        },
-        child: const Icon(Icons.add),
-      ),
+      bottomAppBar: _buildBottomAppBar(),
     );
   }
 
@@ -181,6 +174,14 @@ class _HomePageState extends State<HomePage> {
               Navigator.of(context).pushNamed(RouteConstants.goals);
             },
           ),
+          ListTile(
+            leading: const Icon(Icons.calendar_today),
+            title: const Text('Calendar'),
+            onTap: () {
+              Navigator.of(context).pop();
+              Navigator.of(context).pushNamed(RouteConstants.calendar);
+            },
+          ),
           const Divider(),
           ListTile(
             leading: const Icon(Icons.settings),
@@ -208,18 +209,18 @@ class _HomePageState extends State<HomePage> {
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+      children: [
           Text(
             dailyFocus['greeting'] ?? 'Hello',
             style: Theme.of(context).textTheme.headlineMedium,
-          ),
+              ),
           const SizedBox(height: 8),
-          Text(
+                  Text(
             dailyFocus['message'] ?? 'Make it count!',
             style: Theme.of(context).textTheme.bodyLarge,
-          ),
-        ],
-      ),
+                  ),
+                ],
+              ),
     );
   }
 
@@ -617,6 +618,18 @@ class _HomePageState extends State<HomePage> {
                           ],
                         ],
                       ),
+                    if (task['completedPomodoros'] != null && (task['completedPomodoros'] as int) > 0) 
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4.0),
+                        child: Text(
+                          '${task['completedPomodoros']} Pomodoros completed',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontStyle: FontStyle.italic,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -699,5 +712,46 @@ class _HomePageState extends State<HomePage> {
     final now = DateTime.now();
     final difference = deadline.difference(now).inDays;
     return difference <= 3 && difference >= 0;
+  }
+
+  Widget _buildBottomAppBar() {
+    return BottomAppBar(
+      shape: const CircularNotchedRectangle(),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: <Widget>[
+          IconButton(
+            icon: const Icon(Icons.menu),
+            onPressed: () {
+              // Handle tap
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.calendar_today),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const CalendarPage(),
+                ),
+              );
+            },
+          ),
+          const Expanded(child: SizedBox()),
+          IconButton(
+            icon: const Icon(Icons.add),
+            onPressed: () {
+              context.read<ProjectBloc>().add(LoadProjectsEvent());
+              Navigator.of(context).pushNamed(RouteConstants.projectList);
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.more_vert),
+            onPressed: () {
+              // Handle tap
+            },
+          ),
+        ],
+      ),
+    );
   }
 }

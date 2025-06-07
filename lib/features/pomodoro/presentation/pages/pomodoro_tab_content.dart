@@ -319,6 +319,42 @@ class _PomodoroTabContentState extends State<PomodoroTabContent> {
                     const SizedBox(height: 24),
                   ],
                   
+                  // Task Hub Buttons (Pomodoro Settings, Default, Edit Task)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Pomodoro Settings Button (Clock Icon)
+                      IconButton(
+                        icon: const Icon(Icons.timer, size: 32, color: Colors.black87), // Clock icon for Pomodoro settings
+                        onPressed: () {
+                          // TODO: Navigate to or show Pomodoro specific settings dialog
+                          print('Pomodoro Settings button tapped');
+                        },
+                      ),
+                      const SizedBox(width: 24),
+                      // Default Button (Placeholder)
+                      IconButton(
+                        icon: const Icon(Icons.star, size: 32, color: Colors.black87), // Placeholder icon
+                        onPressed: () {
+                          // TODO: Implement default button action
+                          print('Default button tapped');
+                        },
+                      ),
+                      const SizedBox(width: 24),
+                      // Edit Task Button (Gear Icon)
+                      IconButton(
+                        icon: const Icon(Icons.settings, size: 32, color: Colors.black87), // Gear icon for task editing
+                        onPressed: () {
+                          // We need the task data here to call _showEditTaskDialog
+                          // For now, just print a message
+                          print('Edit Task button tapped');
+                          // TODO: Implement calling _showEditTaskDialog with the selected task
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 48), // Space between buttons and timer area
+                  
                   // Timer circle
                   Container(
                     width: 280,

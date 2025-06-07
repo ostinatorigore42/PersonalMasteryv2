@@ -113,4 +113,10 @@ class AppConstants {
   static const String networkError = 'Network error. Working in offline mode.';
   static const String syncError = 'Sync failed. Will retry later.';
   static const String authError = 'Authentication failed. Please try again.';
+  
+  // New keys
+  static const String userKey = 'user';
+  static const String settingsKey = 'settings';
+  static const String themeKey = 'theme';
+  static const String languageKey = 'language';
 }

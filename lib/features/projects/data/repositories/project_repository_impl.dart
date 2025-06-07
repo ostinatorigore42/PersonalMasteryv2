@@ -1,4 +1,5 @@
 import 'package:uuid/uuid.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/services/firebase_service.dart';
@@ -212,7 +213,40 @@ class ProjectRepositoryImpl implements ProjectRepository {
   @override
   Future<Map<String, dynamic>?> getTask(String taskId) async {
     try {
-      return _localStorageService.getItem(AppConstants.tasksBox, taskId);
+      // Try local storage first
+      final localTask = _localStorageService.getItem(AppConstants.tasksBox, taskId);
+      if (localTask != null) {
+        print('DEBUG: getTask found in local storage: $taskId');
+        return localTask;
+      }
+      print('DEBUG: getTask not found in local storage, trying Firestore: $taskId');
+      // Try Firestore
+      final userId = _firebaseService.auth.currentUser?.uid;
+      if (userId == null) return null;
+      // Try to find the projectId by searching all projects (inefficient, but works for now)
+      final projects = await _firebaseService.firestore
+        .collection('users')
+        .doc(userId)
+        .collection('projects')
+        .get();
+      for (final projectDoc in projects.docs) {
+        final tasksSnapshot = await _firebaseService.firestore
+          .collection('users')
+          .doc(userId)
+          .collection('projects')
+          .doc(projectDoc.id)
+          .collection('tasks')
+          .where(FieldPath.documentId, isEqualTo: taskId)
+          .get();
+        if (tasksSnapshot.docs.isNotEmpty) {
+          print('DEBUG: getTask found in Firestore: $taskId');
+          final data = tasksSnapshot.docs.first.data();
+          data['id'] = taskId;
+          return data;
+        }
+      }
+      print('DEBUG: getTask not found in Firestore: $taskId');
+      return null;
     } catch (e) {
       print('Error getting task: $e');
       return null;

@@ -1,7 +1,8 @@
 import 'dart:convert';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../constants/app_constants.dart';
-import 'package:shared_preferences.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 /// Service for managing local storage with Hive database
 class LocalStorageService {
@@ -64,7 +65,9 @@ class LocalStorageService {
   // Generic CRUD operations for collections
   Future<void> saveItem(String boxName, String id, Map<String, dynamic> data) async {
     final box = _getBoxByName(boxName);
-    await box.put(id, data);
+    // Convert all Timestamp fields to DateTime
+    final convertedData = _convertTimestampsToDateTime(data);
+    await box.put(id, convertedData);
     
     // Mark as not synced
     await markItemForSync(boxName, id);
@@ -228,5 +231,26 @@ class LocalStorageService {
       default:
         throw Exception('Box $boxName not found');
     }
+  }
+
+  // Helper to recursively convert Timestamp to DateTime
+  Map<String, dynamic> _convertTimestampsToDateTime(Map<String, dynamic> data) {
+    final result = <String, dynamic>{};
+    data.forEach((key, value) {
+      if (value is Timestamp) {
+        result[key] = value.toDate();
+      } else if (value is Map<String, dynamic>) {
+        result[key] = _convertTimestampsToDateTime(value);
+      } else if (value is List) {
+        result[key] = value.map((item) {
+          if (item is Timestamp) return item.toDate();
+          if (item is Map<String, dynamic>) return _convertTimestampsToDateTime(item);
+          return item;
+        }).toList();
+      } else {
+        result[key] = value;
+      }
+    });
+    return result;
   }
 }

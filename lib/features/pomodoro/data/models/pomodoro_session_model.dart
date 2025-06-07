@@ -1,4 +1,5 @@
 import 'package:hive/hive.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 /// Model representing a pomodoro session
 class PomodoroSessionModel {
@@ -28,8 +29,8 @@ class PomodoroSessionModel {
   Map<String, dynamic> toFirebase() {
     return {
       'taskId': taskId,
-      'startTime': startTime,
-      'endTime': endTime,
+      'startTime': Timestamp.fromDate(startTime),
+      'endTime': Timestamp.fromDate(endTime),
       'rating': rating,
       'notes': notes,
       'isCompleted': isCompleted,
@@ -43,8 +44,8 @@ class PomodoroSessionModel {
     return PomodoroSessionModel(
       id: id,
       taskId: data['taskId'] as String,
-      startTime: (data['startTime'] as dynamic).toDate(),
-      endTime: (data['endTime'] as dynamic).toDate(),
+      startTime: (data['startTime'] as Timestamp).toDate(),
+      endTime: (data['endTime'] as Timestamp).toDate(),
       rating: data['rating'] as double?,
       notes: data['notes'] as Map<String, dynamic>?,
       isCompleted: data['isCompleted'] as bool? ?? false,

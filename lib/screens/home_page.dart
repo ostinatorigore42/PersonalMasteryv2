@@ -6,9 +6,24 @@ import '../widgets/project_item_card.dart';
 import '../features/projects/presentation/widgets/projects_overview_card.dart';
 import 'authentication_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:personal_mastery/core/constants/route_constants.dart';
+import 'package:personal_mastery/features/calendar/presentation/pages/calendar_page.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   Future<void> _signOut(BuildContext context) async {
     try {
@@ -39,17 +54,19 @@ class HomePage extends StatelessWidget {
     if (birthday == null) return '';
 
     final now = DateTime.now();
-    final daysSince = now.difference(birthday).inDays;
+    final daysSince = now.difference(birthday).inDays + 1; // Add +1 to include the current day
     
     // Return just the number of days
     return daysSince.toString();
   }
 
-  @override
+    @override
   Widget build(BuildContext context) {
     final FirestoreService _firestoreService = FirestoreService();
     final User? user = FirebaseAuth.instance.currentUser;
     final String greeting = _getTimeOfDayGreeting();
+
+    print('DEBUG: HomePage current user: \\${user?.uid} email: \\${user?.email}');
 
     return Scaffold(
       appBar: AppBar(
@@ -85,6 +102,14 @@ class HomePage extends StatelessWidget {
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 16,
+                    ),
+                  ),
+                  // Debug: Show UID
+                  Text(
+                    'UID: \\${user?.uid ?? 'null'}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
                     ),
                   ),
                 ],
@@ -156,49 +181,94 @@ class HomePage extends StatelessWidget {
           ],
         ),
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: StreamBuilder<Map<String, dynamic>?>( // Use StreamBuilder for user data
-                stream: _firestoreService.getUserData(),
-                builder: (context, snapshot) {
-                  String userName = user?.email?.split('@')[0] ?? 'User';
-                  DateTime? birthday;
-                  String birthdayMessage = '';
+      body: Stack( // Use a Stack to layer the body content and the buttons
+        children: [
+          SingleChildScrollView( // Your existing main content
+            controller: _scrollController,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: StreamBuilder<Map<String, dynamic>?>(
+                    stream: _firestoreService.getUserData(),
+                    builder: (context, snapshot) {
+                      String userName = user?.email?.split('@')[0] ?? 'User';
+                      DateTime? birthday;
+                      String birthdayMessage = '';
 
-                  if (snapshot.hasData && snapshot.data != null) {
-                    final userData = snapshot.data!;
-                    userName = userData['name'] ?? userName; // Use name from data if available
-                    if (userData['birthday'] is Timestamp) {
-                      birthday = (userData['birthday'] as Timestamp).toDate();
-                      final days = _getDaysSinceBirthday(birthday);
-                      if (days.isNotEmpty) {
-                        birthdayMessage = 'It is Day $days of your life.';
+                      if (snapshot.hasData && snapshot.data != null) {
+                        final userData = snapshot.data!;
+                        userName = userData['name'] ?? userName;
+                        if (userData['birthday'] is Timestamp) {
+                          birthday = (userData['birthday'] as Timestamp).toDate();
+                          final days = _getDaysSinceBirthday(birthday);
+                          if (days.isNotEmpty) {
+                            birthdayMessage = 'It is Day $days of your life.';
+                          }
+                        }
                       }
-                    }
-                  }
 
-                  return Text(
-                    '$greeting, $userName. $birthdayMessage',
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  );
-                },
+                      return Text(
+                        '$greeting, $userName. $birthdayMessage',
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                ProjectsOverviewCard(),
+              ],
+            ),
+          ),
+          Align( // Align the Row of buttons to the bottom center
+            alignment: Alignment.bottomCenter,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 16.0), // Add some padding from the bottom
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center, // Center the row of buttons
+                mainAxisSize: MainAxisSize.min, // Make the row take minimum space
+                children: [
+                  // Existing Home Button
+                  FloatingActionButton(
+                    heroTag: 'homeFAB', // Add a unique heroTag
+                    onPressed: () {
+                      _scrollController.animateTo(
+                        0.0,
+                        duration: const Duration(milliseconds: 500),
+                        curve: Curves.easeInOut,
+                      );
+                    },
+                    backgroundColor: Colors.blueAccent,
+                    child: const Icon(Icons.home, color: Colors.white),
+                    elevation: 4.0,
+                    shape: const CircleBorder(),
+                  ),
+                  const SizedBox(width: 16.0), // Add space between buttons
+                  // New Calendar Button
+                  FloatingActionButton(
+                    heroTag: 'calendarFAB', // Add a unique heroTag
+                    onPressed: () {
+                      print('Calendar button pressed');
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const CalendarPage(),
+                        ),
+                      );
+                    },
+                    backgroundColor: Colors.blueAccent, // Match the Home button style
+                    child: const Icon(Icons.calendar_today, color: Colors.white), // Calendar icon
+                    elevation: 4.0,
+                    shape: const CircleBorder(),
+                  ),
+                ],
               ),
             ),
-            ProjectsOverviewCard(),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {},
-        child: const Icon(Icons.add),
+          ),
+        ],
       ),
     );
   }
-} 
+}

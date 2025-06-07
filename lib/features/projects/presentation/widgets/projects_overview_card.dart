@@ -268,7 +268,7 @@ class _ProjectsOverviewCardState extends State<ProjectsOverviewCard> {
                   ),
                   child: IconButton(
                     icon: const Icon(Icons.add, color: Colors.black, size: 24.0),
-                    onPressed: _showAddProjectDialog,
+                  onPressed: _showAddProjectDialog,
                   ),
                 ),
               ],

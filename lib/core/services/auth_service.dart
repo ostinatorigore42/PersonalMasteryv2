@@ -1,5 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:shared_preferences.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'firebase_service.dart';
 
@@ -34,10 +34,8 @@ class AuthService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final rememberMe = prefs.getBool(_rememberMeKey) ?? false;
-      
-      if (!rememberMe) {
-        await _auth.signOut();
-      }
+      print('DEBUG: AuthService _initializeAuthState, rememberMe: $rememberMe');
+      // Do NOT sign out automatically. Only sign out on explicit user action.
     } catch (e) {
       print('Error initializing auth state: $e');
     }

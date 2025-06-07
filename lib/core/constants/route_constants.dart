@@ -19,6 +19,7 @@ class RouteConstants {
   static const String flashcards = '/flashcards';
   static const String goals = '/goals';
   static const String settings = '/settings';
+  static const String calendar = '/calendar';
   
   // Route Parameters
   static const String projectIdParam = 'projectId';

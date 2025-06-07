@@ -25,6 +25,7 @@ import 'features/projects/presentation/pages/project_detail_page.dart';
 import 'features/projects/presentation/pages/project_list_page.dart';
 import 'features/projects/presentation/pages/task_detail_page.dart';
 import 'features/settings/presentation/pages/settings_page.dart';
+import 'features/calendar/presentation/pages/calendar_page.dart';
 
 class SecondBrainApp extends StatelessWidget {
   const SecondBrainApp({Key? key}) : super(key: key);
@@ -126,6 +127,7 @@ class SecondBrainApp extends StatelessWidget {
           RouteConstants.flashcards: (context) => const FlashcardsPage(),
           RouteConstants.goals: (context) => const GoalsPage(),
           RouteConstants.settings: (context) => const SettingsPage(),
+          RouteConstants.calendar: (context) => const CalendarPage(),
         },
       ),
     );
